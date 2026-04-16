@@ -1,0 +1,91 @@
+import { useEffect, useRef } from 'react'
+import MessageBubble from './MessageBubble'
+import TypingIndicator from './TypingIndicator'
+import InputBox from './InputBox'
+import type { ChatMode } from './InputBox'
+import type { Chat } from '../hooks/useChat'
+
+interface Props {
+  chat: Chat | null
+  isTyping: boolean
+  streamingContent: string
+  onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
+  onRegenerate: () => void
+}
+
+const SUGGESTIONS = [
+  'Explain how React hooks work',
+  'Write a Python script to sort a list',
+  'What are the best practices for REST APIs?',
+  'Help me debug this TypeScript error',
+]
+
+export default function ChatArea({ chat, isTyping, streamingContent, onSend, onRegenerate }: Props) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chat?.messages, isTyping])
+
+  const isEmpty = !chat || chat.messages.length === 0
+
+  return (
+    <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center h-full px-4 pb-8 gap-6">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <h2 className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                Minnal AI
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => onSend(s, [], 'default')}
+                  className="text-left px-4 py-3 rounded-xl text-sm transition-all duration-150"
+                  style={{
+                    background: 'var(--bg-hover)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-secondary)',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.color = 'var(--text-primary)'
+                    e.currentTarget.style.borderColor = 'var(--text-muted)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.color = 'var(--text-secondary)'
+                    e.currentTarget.style.borderColor = 'var(--border)'
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="py-6 space-y-1">
+            {chat.messages.map((msg, i) => (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                isLast={i === chat.messages.length - 1}
+                onRegenerate={onRegenerate}
+                disabled={isTyping}
+              />
+            ))}
+            {isTyping && (
+              streamingContent
+                ? <MessageBubble message={{ id: 'streaming', role: 'assistant', content: streamingContent, timestamp: new Date() }} isStreaming />
+                : <TypingIndicator />
+            )}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
+      <InputBox onSend={onSend} disabled={isTyping} />
+    </div>
+  )
+}
