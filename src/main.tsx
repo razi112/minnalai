@@ -7,6 +7,7 @@ import Login from './pages/Login.tsx'
 import Home from './pages/Home.tsx'
 import About from './pages/About.tsx'
 import Features from './pages/Features.tsx'
+import AuthCallback from './pages/AuthCallback.tsx'
 import InstallGuide from './pages/InstallGuide.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
 import { ThemeProvider } from './context/ThemeContext.tsx'
@@ -54,6 +55,7 @@ createRoot(document.getElementById('root')!).render(
               />
               <Route path="/features" element={<Features />} />
               <Route path="/install" element={<InstallGuide />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="*" element={<Home />} />
             </Routes>
           </BrowserRouter>
