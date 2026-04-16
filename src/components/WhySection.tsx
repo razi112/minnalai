@@ -197,8 +197,8 @@ export default function WhySection() {
               <button
                 className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
                 style={{ background: '#4ade80', color: '#000', }}
-                onMouseEnter={e => {  }}
-                onMouseLeave={e => {  }}
+                onMouseEnter={_e => {  }}
+                onMouseLeave={_e => {  }}
               >
                 Get Answer ✦
               </button>
