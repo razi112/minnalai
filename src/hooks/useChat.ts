@@ -18,7 +18,7 @@ export interface Chat {
   createdAt: Date
 }
 
-const API_KEY = 'AIzaSyBA_iRJYfs4ZRUxw4jPn1rlMjeZaVMOVvg'
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string
 const genAI = new GoogleGenerativeAI(API_KEY)
 
 // Fallback chain — if a model is overloaded (503) we try the next one
