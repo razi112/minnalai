@@ -70,7 +70,7 @@ export default function App() {
       )}
 
       {/* Sidebar — desktop */}
-      <div className="relative hidden md:flex">
+      <div className="relative hidden md:flex h-full">
         <Sidebar
           chats={chats}
           activeChatId={activeChatId}

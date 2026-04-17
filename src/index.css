@@ -268,3 +268,19 @@
     border-color: var(--border) !important;
   }
 }
+
+@layer utilities {
+  button:not(:disabled) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled):active {
+    transform: scale(0.92);
+    transition: transform 0.08s ease;
+  }
+
+  /* Override for New Chat pill — subtler scale */
+  button.rounded-xl:not(:disabled):active {
+    transform: scale(0.96);
+  }
+}

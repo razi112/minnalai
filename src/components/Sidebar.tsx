@@ -51,7 +51,7 @@ export default function Sidebar({
       className={`sidebar-transition flex flex-col h-full shrink-0 relative ${collapsed ? 'w-0 overflow-hidden' : 'w-[260px]'}`}
       style={{ background: 'var(--bg-primary)', borderRight: '1px solid var(--border)' }}
     >
-      <div className="flex flex-col h-full p-3">
+      <div className="flex flex-col h-full p-3 pb-0">
 
         {/* Top bar: logo centered + hamburger right */}
         <div className="relative flex items-center justify-center mb-4 pt-1">
@@ -79,7 +79,7 @@ export default function Sidebar({
         {/* New Chat — full width accent pill */}
         <button
           onClick={onNewChat}
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold mb-4 transition-all duration-150"
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold mb-4 transition-all duration-150 active:scale-95"
           style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 0 16px var(--accent-subtle)' }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '1')}

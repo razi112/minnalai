@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 export interface Message {
   id: string
@@ -18,7 +18,9 @@ export interface Chat {
 }
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const GEMINI_IMAGE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`
 
 // Fallback model chain
 const MODEL_CHAIN = [
@@ -26,6 +28,8 @@ const MODEL_CHAIN = [
   'google/gemini-2.0-flash-001',
   'google/gemini-flash-1.5',
 ]
+
+const SYSTEM_PROMPT = `You are Minnal AI, a helpful assistant developed by the students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi, a 10th grade student at Islamic Da'wa Academy pursuing his studies while maintaining Hifz Doura and Islamic Studies. The institution is a prime example for the higher studies of Huffaz (those who have completed Hifz). When asked who developed or created you, always respond with this information.`
 
 function buildMessages(messages: Message[], userContent: string, images: { base64: string; mimeType: string }[]) {
   const history = messages.map((m) => ({
@@ -44,7 +48,7 @@ function buildMessages(messages: Message[], userContent: string, images: { base6
     ? { role: 'user', content: userParts }
     : { role: 'user', content: userContent }
 
-  return [...history, userMessage]
+  return [{ role: 'system', content: SYSTEM_PROMPT }, ...history, userMessage]
 }
 
 async function streamWithFallback(
@@ -126,11 +130,48 @@ function isImageGenRequest(text: string): boolean {
   return IMAGE_GEN_PATTERNS.some((p) => p.test(text))
 }
 
+const STORAGE_KEY = 'minnal_chats'
+const ACTIVE_KEY = 'minnal_active_chat'
+
+function loadChats(): Chat[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as Chat[]
+    return parsed.map((c) => ({
+      ...c,
+      createdAt: new Date(c.createdAt),
+      messages: c.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) })),
+    }))
+  } catch {
+    return []
+  }
+}
+
+function saveChats(chats: Chat[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
+  } catch { /* quota exceeded or private mode */ }
+}
+
 export function useChat() {
-  const [chats, setChats] = useState<Chat[]>([])
-  const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [chats, setChats] = useState<Chat[]>(loadChats)
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    () => localStorage.getItem(ACTIVE_KEY)
+  )
   const [isTyping, setIsTyping] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
+
+  // Persist chats whenever they change
+  useEffect(() => {
+    saveChats(chats)
+  }, [chats])
+
+  // Persist active chat id
+  useEffect(() => {
+    if (activeChatId) localStorage.setItem(ACTIVE_KEY, activeChatId)
+    else localStorage.removeItem(ACTIVE_KEY)
+  }, [activeChatId])
 
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null
 
@@ -186,14 +227,28 @@ export function useChat() {
 
       try {
         if (mode === 'image' || (isImageGenRequest(content) && images.length === 0)) {
-          // OpenRouter doesn't support image generation — inform user
-          const aiMsg: Message = {
-            id: String(Date.now() + 1),
-            role: 'assistant',
-            content: 'Image generation is not supported with the current AI provider. Please describe what you want and I can help with text-based creative descriptions instead.',
-            timestamp: new Date(),
+          try {
+            // Pollinations.ai — free, no API key required
+            const encodedPrompt = encodeURIComponent(content)
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
+
+            const aiMsg: Message = {
+              id: String(Date.now() + 1),
+              role: 'assistant',
+              content: '',
+              generatedImages: [{ base64: imageUrl, mimeType: 'url' }],
+              timestamp: new Date(),
+            }
+            setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
+          } catch (imgErr) {
+            const aiMsg: Message = {
+              id: String(Date.now() + 1),
+              role: 'assistant',
+              content: `Image generation failed: ${imgErr instanceof Error ? imgErr.message : 'Unknown error'}`,
+              timestamp: new Date(),
+            }
+            setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
           }
-          setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
           return
         }
 
@@ -268,6 +323,8 @@ export function useChat() {
   const clearAllChats = useCallback(() => {
     setChats([])
     setActiveChatId(null)
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(ACTIVE_KEY)
   }, [])
 
   return { chats, activeChat, activeChatId, isTyping, streamingContent, setActiveChatId, createChat, deleteChat, renameChat, sendMessage, regenerate, clearAllChats }
