@@ -7,8 +7,9 @@ export default function AuthCallback() {
 
   useEffect(() => {
     // Supabase automatically picks up the hash tokens on getSession
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log(session)
+      if (session) {
         navigate('/dashboard', { replace: true })
       } else {
         navigate('/login', { replace: true })
