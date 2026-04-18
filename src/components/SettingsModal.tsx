@@ -175,7 +175,7 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`w-full max-w-2xl h-[560px] border rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-250 ${
+        className={`w-full max-w-2xl max-h-[90vh] border rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-250 mx-4 ${
           visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
         }`}
         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', boxShadow: '0 25px 60px rgba(0,0,0,0.4)' }}
@@ -195,14 +195,16 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 min-h-0">
-          {/* Sidebar nav */}
-          <nav className="w-44 shrink-0 py-3 px-2 space-y-0.5" style={{ borderRight: '1px solid var(--border)' }}>
+        <div className="flex flex-col sm:flex-row flex-1 min-h-0">
+          {/* Sidebar nav — horizontal scroll on mobile, vertical on sm+ */}
+          <nav className="sm:w-44 shrink-0 py-2 sm:py-3 px-2 flex sm:flex-col flex-row overflow-x-auto gap-0.5 sm:space-y-0.5" style={{ borderBottom: '1px solid var(--border)' }} >
+            <style>{`.settings-nav { border-bottom: 1px solid var(--border); } @media (min-width: 640px) { .settings-nav { border-bottom: none; border-right: 1px solid var(--border); } }`}</style>
+            <div className="settings-nav flex sm:flex-col flex-row gap-0.5 w-full">
             {SECTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => switchSection(s)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-150"
+                className="flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-150 whitespace-nowrap sm:w-full"
                 style={{
                   background: activeSection === s ? 'var(--bg-hover)' : 'transparent',
                   color: activeSection === s ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -211,15 +213,16 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
                 onMouseLeave={e => { if (activeSection !== s) e.currentTarget.style.background = 'transparent' }}
               >
                 <span>{s}</span>
-                {activeSection === s && <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />}
+                {activeSection === s && <ChevronRight size={13} className="hidden sm:block" style={{ color: 'var(--text-muted)' }} />}
               </button>
             ))}
+            </div>
           </nav>
 
           {/* Content */}
           <div
             key={contentKey}
-            className="flex-1 overflow-y-auto px-6 py-5"
+            className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 min-h-[300px] sm:min-h-0"
             style={{ animation: 'settingsFadeIn 0.18s ease forwards' }}
           >
             {activeSection === 'Profile' && (

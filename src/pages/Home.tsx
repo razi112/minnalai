@@ -56,7 +56,7 @@ export default function Home() {
         />
 
         {/* Hero */}
-        <section className="relative flex flex-col items-center justify-center text-center px-6 pt-52 pb-56 gap-8">
+        <section className="relative flex flex-col items-center justify-center text-center px-6 pt-32 sm:pt-52 pb-32 sm:pb-56 gap-8">
 
           <style>{`
             @keyframes float-y  { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
@@ -64,28 +64,28 @@ export default function Home() {
           `}</style>
 
           {/* mosque — upper left */}
-          <div style={{ position:'absolute', left:'calc(50% - 220px)', top:'160px', width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:14, animation:'float-y 4s ease-in-out infinite', zIndex:1 }}>
+          <div style={{ position:'absolute', left:'calc(50% - 180px)', top:'160px', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:12, animation:'float-y 4s ease-in-out infinite', zIndex:1 }} className="hidden sm:flex">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 21h18"/><path d="M9 21V10l3-3 3 3v11"/><path d="M12 3a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2z"/><path d="M5 21V14a2 2 0 0 1 2-2h1"/><path d="M19 21V14a2 2 0 0 0-2-2h-1"/>
             </svg>
           </div>
 
           {/* quran — upper right */}
-          <div style={{ position:'absolute', left:'calc(50% + 168px)', top:'160px', width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:14, animation:'float-y2 5s ease-in-out infinite 0.4s', zIndex:1 }}>
+          <div style={{ position:'absolute', left:'calc(50% + 136px)', top:'160px', width:44, height:44, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:12, animation:'float-y2 5s ease-in-out infinite 0.4s', zIndex:1 }} className="hidden sm:flex">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
           </div>
 
           {/* crescent moon — lower left */}
-          <div style={{ position:'absolute', left:'calc(50% - 310px)', top:'210px', width:46, height:46, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:12, animation:'float-y 6s ease-in-out infinite 1s', zIndex:1 }}>
+          <div style={{ position:'absolute', left:'calc(50% - 260px)', top:'210px', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:10, animation:'float-y 6s ease-in-out infinite 1s', zIndex:1 }} className="hidden md:flex">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </div>
 
           {/* compass/qibla — lower right */}
-          <div style={{ position:'absolute', left:'calc(50% + 264px)', top:'210px', width:46, height:46, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:12, animation:'float-y2 4.5s ease-in-out infinite 0.8s', zIndex:1 }}>
+          <div style={{ position:'absolute', left:'calc(50% + 220px)', top:'210px', width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg-secondary)', border:'1px solid var(--border)', borderRadius:10, animation:'float-y2 4.5s ease-in-out infinite 0.8s', zIndex:1 }} className="hidden md:flex">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
             </svg>
@@ -99,7 +99,7 @@ export default function Home() {
           </div>
 
           <h1
-            className="text-6xl sm:text-7xl font-bold leading-tight max-w-3xl fade-up fade-up-delay-1"
+            className="text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight max-w-3xl fade-up fade-up-delay-1"
             style={{ letterSpacing: '-0.03em' }}
           >
             Your Intelligent & Authentic
@@ -114,7 +114,7 @@ AI{' '}
             A clean, fast AI chat experience. Ask anything, get instant answers, and keep your conversations organized.
           </p>
 
-          <div className="flex items-center gap-4 mt-2 fade-up fade-up-delay-3">
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 fade-up fade-up-delay-3">
             <button
               onClick={() => navigate('/login')}
               className="px-6 py-3 rounded-xl text-sm font-bold"
@@ -167,7 +167,7 @@ AI{' '}
         </section>
 
         {/* Features grid */}
-        <section className="relative max-w-5xl mx-auto px-8 pb-32 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <section className="relative max-w-5xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32 grid grid-cols-1 sm:grid-cols-2 gap-6">
           {features.map(({ icon, title, desc }, i) => (
             <ScrollRevealCard key={title} delay={i * 0.1}>
               <div
@@ -215,7 +215,7 @@ AI{' '}
           <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '700px', height: '260px', background: 'radial-gradient(ellipse at center, var(--accent-subtle) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
           {/* Main grid */}
-          <div style={{ position: 'relative', maxWidth: '1100px', margin: '0 auto', padding: '64px 40px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
+          <div style={{ position: 'relative', maxWidth: '1100px', margin: '0 auto', padding: '64px 24px 40px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '48px', alignItems: 'start' }}>
 
             {/* Left — brand + social */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -270,10 +270,10 @@ AI{' '}
           </div>
 
           {/* Divider */}
-          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 40px' }} />
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 24px' }} />
 
           {/* Bottom bar */}
-          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '18px 40px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '18px 24px', display: 'flex', justifyContent: 'center' }}>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
               © {new Date().getFullYear()} Minnal AI. All Rights Reserved.
             </p>

@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { supabase } from '../supabase'
+import { useAuth } from '../context/AuthContext'
 
 export interface Message {
   id: string
@@ -18,9 +20,7 @@ export interface Chat {
 }
 
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const GEMINI_IMAGE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`
 
 // Fallback model chain
 const MODEL_CHAIN = [
@@ -37,7 +37,6 @@ function buildMessages(messages: Message[], userContent: string, images: { base6
     content: m.content,
   }))
 
-  // Build user message — include images as base64 if present
   const userParts: object[] = images.map((img) => ({
     type: 'image_url',
     image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
@@ -80,7 +79,7 @@ async function streamWithFallback(
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         const msg: string = err?.error?.message ?? `Request failed (${res.status})`
-        if (res.status === 429 || res.status === 503) continue // try next model
+        if (res.status === 429 || res.status === 503) continue
         throw new Error(msg)
       }
 
@@ -118,7 +117,6 @@ async function streamWithFallback(
   throw new Error('All models are currently unavailable. Please try again.')
 }
 
-// Detect image generation requests
 const IMAGE_GEN_PATTERNS = [
   /\bgenerate\b.*\bimage\b/i, /\bcreate\b.*\bimage\b/i,
   /\bdraw\b/i, /\bpaint\b/i, /\billustrat/i,
@@ -130,10 +128,11 @@ function isImageGenRequest(text: string): boolean {
   return IMAGE_GEN_PATTERNS.some((p) => p.test(text))
 }
 
+// ── localStorage helpers (guest / offline fallback) ──────────────────────────
 const STORAGE_KEY = 'minnal_chats'
 const ACTIVE_KEY = 'minnal_active_chat'
 
-function loadChats(): Chat[] {
+function loadLocalChats(): Chat[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
@@ -148,49 +147,156 @@ function loadChats(): Chat[] {
   }
 }
 
-function saveChats(chats: Chat[]) {
+function saveLocalChats(chats: Chat[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
   } catch { /* quota exceeded or private mode */ }
 }
 
+// ── Supabase helpers ──────────────────────────────────────────────────────────
+async function loadSupabaseChats(userId: string): Promise<Chat[]> {
+  const { data, error } = await supabase
+    .from('chats')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((row: any) => ({
+    id: row.id,
+    title: row.title,
+    createdAt: new Date(row.created_at),
+    messages: (row.messages as any[]).map((m) => ({
+      ...m,
+      timestamp: new Date(m.timestamp),
+    })),
+  }))
+}
+
+async function upsertSupabaseChat(userId: string, chat: Chat) {
+  await supabase.from('chats').upsert({
+    id: chat.id,
+    user_id: userId,
+    title: chat.title,
+    messages: chat.messages,
+    created_at: chat.createdAt.toISOString(),
+    updated_at: new Date().toISOString(),
+  })
+}
+
+async function deleteSupabaseChat(chatId: string) {
+  await supabase.from('chats').delete().eq('id', chatId)
+}
+
+async function deleteAllSupabaseChats(userId: string) {
+  await supabase.from('chats').delete().eq('user_id', userId)
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
 export function useChat() {
-  const [chats, setChats] = useState<Chat[]>(loadChats)
-  const [activeChatId, setActiveChatId] = useState<string | null>(
-    () => localStorage.getItem(ACTIVE_KEY)
-  )
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+
+  const [chats, setChats] = useState<Chat[]>([])
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
-  // Persist chats whenever they change
-  useEffect(() => {
-    saveChats(chats)
-  }, [chats])
+  // Track previous userId to detect login/logout transitions
+  const prevUserIdRef = useRef<string | null | undefined>(undefined)
 
-  // Persist active chat id
+  // Load chats whenever auth state changes
   useEffect(() => {
-    if (activeChatId) localStorage.setItem(ACTIVE_KEY, activeChatId)
-    else localStorage.removeItem(ACTIVE_KEY)
-  }, [activeChatId])
+    const prev = prevUserIdRef.current
+    prevUserIdRef.current = userId
+
+    // Skip the very first render before auth resolves (undefined → null/string)
+    if (prev === undefined) return
+
+    async function load() {
+      setLoaded(false)
+      if (userId) {
+        // Logged in — load from Supabase
+        const cloudChats = await loadSupabaseChats(userId)
+        setChats(cloudChats)
+        setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
+      } else {
+        // Guest — load from localStorage
+        const local = loadLocalChats()
+        setChats(local)
+        setActiveChatId(localStorage.getItem(ACTIVE_KEY))
+      }
+      setLoaded(true)
+    }
+
+    load()
+  }, [userId])
+
+  // Initial load on mount
+  useEffect(() => {
+    async function initialLoad() {
+      if (userId) {
+        const cloudChats = await loadSupabaseChats(userId)
+        setChats(cloudChats)
+        setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
+      } else {
+        const local = loadLocalChats()
+        setChats(local)
+        setActiveChatId(localStorage.getItem(ACTIVE_KEY))
+      }
+      prevUserIdRef.current = userId
+      setLoaded(true)
+    }
+    initialLoad()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist active chat id for guests
+  useEffect(() => {
+    if (!userId) {
+      if (activeChatId) localStorage.setItem(ACTIVE_KEY, activeChatId)
+      else localStorage.removeItem(ACTIVE_KEY)
+    }
+  }, [activeChatId, userId])
 
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null
 
   const createChat = useCallback(() => {
     const id = String(Date.now())
     const newChat: Chat = { id, title: 'New Chat', messages: [], createdAt: new Date() }
-    setChats((prev) => [newChat, ...prev])
+    setChats((prev) => {
+      const updated = [newChat, ...prev]
+      if (!userId) saveLocalChats(updated)
+      return updated
+    })
     setActiveChatId(id)
+    if (userId) upsertSupabaseChat(userId, newChat)
     return id
-  }, [])
+  }, [userId])
 
   const deleteChat = useCallback((id: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== id))
+    setChats((prev) => {
+      const updated = prev.filter((c) => c.id !== id)
+      if (!userId) saveLocalChats(updated)
+      return updated
+    })
     setActiveChatId((prev) => (prev === id ? null : prev))
-  }, [])
+    if (userId) deleteSupabaseChat(id)
+  }, [userId])
 
   const renameChat = useCallback((id: string, title: string) => {
-    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)))
-  }, [])
+    setChats((prev) => {
+      const updated = prev.map((c) => (c.id === id ? { ...c, title } : c))
+      if (!userId) saveLocalChats(updated)
+      if (userId) {
+        const chat = updated.find((c) => c.id === id)
+        if (chat) upsertSupabaseChat(userId, chat)
+      }
+      return updated
+    })
+  }, [userId])
 
   const sendMessage = useCallback(
     async (content: string, images: { base64: string; mimeType: string }[] = [], mode: 'default' | 'image' | 'canvas' | 'deep-search' = 'default') => {
@@ -200,8 +306,13 @@ export function useChat() {
       if (!chatId) {
         chatId = String(Date.now())
         const newChat: Chat = { id: chatId, title: content.slice(0, 40) || 'New Chat', messages: [], createdAt: new Date() }
-        setChats((prev) => [newChat, ...prev])
+        setChats((prev) => {
+          const updated = [newChat, ...prev]
+          if (!userId) saveLocalChats(updated)
+          return updated
+        })
         setActiveChatId(chatId)
+        if (userId) upsertSupabaseChat(userId, newChat)
       } else {
         existingMessages = chats.find((c) => c.id === chatId)?.messages ?? []
       }
@@ -214,41 +325,40 @@ export function useChat() {
         timestamp: new Date(),
       }
 
-      setChats((prev) =>
-        prev.map((c) =>
+      setChats((prev) => {
+        const updated = prev.map((c) =>
           c.id === chatId
             ? { ...c, title: c.messages.length === 0 ? (content.slice(0, 40) || 'New Chat') : c.title, messages: [...c.messages, userMsg] }
             : c
         )
-      )
+        if (!userId) saveLocalChats(updated)
+        return updated
+      })
 
       setIsTyping(true)
       setStreamingContent('')
 
       try {
         if (mode === 'image' || (isImageGenRequest(content) && images.length === 0)) {
-          try {
-            // Pollinations.ai — free, no API key required
-            const encodedPrompt = encodeURIComponent(content)
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
+          const encodedPrompt = encodeURIComponent(content)
+          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
 
-            const aiMsg: Message = {
-              id: String(Date.now() + 1),
-              role: 'assistant',
-              content: '',
-              generatedImages: [{ base64: imageUrl, mimeType: 'url' }],
-              timestamp: new Date(),
-            }
-            setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
-          } catch (imgErr) {
-            const aiMsg: Message = {
-              id: String(Date.now() + 1),
-              role: 'assistant',
-              content: `Image generation failed: ${imgErr instanceof Error ? imgErr.message : 'Unknown error'}`,
-              timestamp: new Date(),
-            }
-            setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
+          const aiMsg: Message = {
+            id: String(Date.now() + 1),
+            role: 'assistant',
+            content: '',
+            generatedImages: [{ base64: imageUrl, mimeType: 'url' }],
+            timestamp: new Date(),
           }
+          setChats((prev) => {
+            const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+            if (!userId) saveLocalChats(updated)
+            if (userId) {
+              const chat = updated.find((c) => c.id === chatId)
+              if (chat) upsertSupabaseChat(userId, chat)
+            }
+            return updated
+          })
           return
         }
 
@@ -271,7 +381,15 @@ export function useChat() {
           timestamp: new Date(),
         }
 
-        setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
+        setChats((prev) => {
+          const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+          if (!userId) saveLocalChats(updated)
+          if (userId) {
+            const chat = updated.find((c) => c.id === chatId)
+            if (chat) upsertSupabaseChat(userId, chat)
+          }
+          return updated
+        })
       } catch (err) {
         const errorMsg: Message = {
           id: String(Date.now() + 1),
@@ -279,13 +397,21 @@ export function useChat() {
           content: `Error: ${err instanceof Error ? err.message : 'Failed to get response. Check your API key.'}`,
           timestamp: new Date(),
         }
-        setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, errorMsg] } : c))
+        setChats((prev) => {
+          const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
+          if (!userId) saveLocalChats(updated)
+          if (userId) {
+            const chat = updated.find((c) => c.id === chatId)
+            if (chat) upsertSupabaseChat(userId, chat)
+          }
+          return updated
+        })
       } finally {
         setIsTyping(false)
         setStreamingContent('')
       }
     },
-    [activeChatId, chats]
+    [activeChatId, chats, userId]
   )
 
   const regenerate = useCallback(async () => {
@@ -297,7 +423,11 @@ export function useChat() {
     const lastUserMsg = messagesWithoutLast[messagesWithoutLast.length - 1]
     if (!lastUserMsg || lastUserMsg.role !== 'user') return
 
-    setChats((prev) => prev.map((c) => c.id === activeChatId ? { ...c, messages: messagesWithoutLast } : c))
+    setChats((prev) => {
+      const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: messagesWithoutLast } : c)
+      if (!userId) saveLocalChats(updated)
+      return updated
+    })
     setIsTyping(true)
     setStreamingContent('')
 
@@ -305,7 +435,15 @@ export function useChat() {
       const history = messagesWithoutLast.slice(0, -1)
       const fullText = await streamWithFallback(history, lastUserMsg.content, lastUserMsg.images ?? [], setStreamingContent)
       const aiMsg: Message = { id: String(Date.now()), role: 'assistant', content: fullText, timestamp: new Date() }
-      setChats((prev) => prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, aiMsg] } : c))
+      setChats((prev) => {
+        const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+        if (!userId) saveLocalChats(updated)
+        if (userId) {
+          const updatedChat = updated.find((c) => c.id === activeChatId)
+          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
+        }
+        return updated
+      })
     } catch (err) {
       const errorMsg: Message = {
         id: String(Date.now()),
@@ -313,19 +451,35 @@ export function useChat() {
         content: `Error: ${err instanceof Error ? err.message : 'Regeneration failed.'}`,
         timestamp: new Date(),
       }
-      setChats((prev) => prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, errorMsg] } : c))
+      setChats((prev) => {
+        const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
+        if (!userId) saveLocalChats(updated)
+        if (userId) {
+          const updatedChat = updated.find((c) => c.id === activeChatId)
+          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
+        }
+        return updated
+      })
     } finally {
       setIsTyping(false)
       setStreamingContent('')
     }
-  }, [activeChatId, chats])
+  }, [activeChatId, chats, userId])
 
   const clearAllChats = useCallback(() => {
     setChats([])
     setActiveChatId(null)
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(ACTIVE_KEY)
-  }, [])
+    if (userId) {
+      deleteAllSupabaseChats(userId)
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(ACTIVE_KEY)
+    }
+  }, [userId])
 
-  return { chats, activeChat, activeChatId, isTyping, streamingContent, setActiveChatId, createChat, deleteChat, renameChat, sendMessage, regenerate, clearAllChats }
+  return {
+    chats, activeChat, activeChatId, isTyping, streamingContent, loaded,
+    setActiveChatId, createChat, deleteChat, renameChat,
+    sendMessage, regenerate, clearAllChats,
+  }
 }

@@ -51,7 +51,7 @@ export default function About() {
         </section>
 
         {/* Story */}
-        <section className="relative max-w-3xl mx-auto px-8 pb-20 fade-up fade-up-delay-3">
+        <section className="relative max-w-3xl mx-auto px-4 sm:px-8 pb-16 sm:pb-20 fade-up fade-up-delay-3">
           <div
             className="glow-card hover-scale rounded-2xl p-8"
             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
@@ -69,7 +69,7 @@ export default function About() {
         </section>
 
         {/* Stack */}
-        <section className="relative max-w-5xl mx-auto px-8 pb-32">
+        <section className="relative max-w-5xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32">
           <h2
             className="text-lg font-semibold mb-5 text-center fade-up fade-up-delay-3"
             style={{ color: 'var(--text-primary)' }}

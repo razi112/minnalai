@@ -134,7 +134,7 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
         <div
           className="rounded-2xl flex items-center justify-center text-xs"
           style={{
-            width: 320, height: 320,
+            width: 'min(320px, 70vw)', height: 'min(320px, 70vw)',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
             color: 'var(--text-muted)',
@@ -148,7 +148,7 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
         alt="Generated image"
         className="rounded-2xl object-cover"
         style={{
-          maxWidth: 320, maxHeight: 320,
+          maxWidth: 'min(320px, 70vw)', maxHeight: 'min(320px, 70vw)',
           border: '1px solid var(--border)',
           display: status === 'loaded' ? 'block' : 'none',
         }}
@@ -158,7 +158,7 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
       {status === 'error' && (
         <div
           className="rounded-2xl flex flex-col items-center justify-center gap-2 text-xs"
-          style={{ width: 320, height: 160, background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+          style={{ width: 'min(320px, 70vw)', height: 160, background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
         >
           <span>Failed to load image</span>
           <a href={src} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Open in browser</a>
@@ -232,9 +232,9 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
 
   if (isUser) {
     return (
-      <div className="flex justify-end px-4 py-2 message-fade-in max-w-3xl mx-auto w-full">
+      <div className="flex justify-end px-3 sm:px-4 py-2 message-fade-in max-w-3xl mx-auto w-full">
         <div
-          className="max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed flex flex-col gap-2"
+          className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed flex flex-col gap-2"
           style={{ background: 'var(--bubble-user)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
         >
           {message.images && message.images.length > 0 && (
@@ -258,7 +258,7 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
 
   return (
     <>
-    <div className="flex items-start px-4 py-2 message-fade-in max-w-3xl mx-auto w-full">
+    <div className="flex items-start px-3 sm:px-4 py-2 message-fade-in max-w-3xl mx-auto w-full">
       <div className="flex-1 min-w-0">
         <div className={`text-sm leading-relaxed${isStreaming ? ' streaming-bubble rounded-xl px-3 py-2 -mx-3 -my-2' : ''}`}
           style={isStreaming ? { border: '1px solid var(--border)', background: 'transparent' } : {}}

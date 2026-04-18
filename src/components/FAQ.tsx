@@ -108,7 +108,7 @@ export default function FAQ() {
   const { ref, visible } = useScrollReveal()
 
   return (
-    <section className="relative max-w-3xl mx-auto px-8 pb-32">
+    <section className="relative max-w-3xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32">
       {/* Section header — scroll reveal */}
       <div
         ref={ref}

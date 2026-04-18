@@ -249,7 +249,7 @@ export default function InputBox({ onSend, disabled }: Props) {
           </div>
         </div>
 
-        <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center text-xs mt-2 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
           Press Enter to send · Shift+Enter for new line · Paste or drag images
         </p>
       </div>

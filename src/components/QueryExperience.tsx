@@ -20,7 +20,7 @@ function useScrollReveal(threshold = 0.12) {
 }
 
 const PHONE: React.CSSProperties = {
-  width: '260px',
+  width: 'min(260px, 80vw)',
   height: '520px',
   borderRadius: '48px',
   overflow: 'hidden',
@@ -120,7 +120,7 @@ function PhoneOTP() {
   const digits = ['4', '2', '', '']
   return (
     <div style={{
-      width: '300px',
+      width: 'min(300px, 85vw)',
       background: '#1a1a1a',
       borderRadius: '28px',
       padding: '36px 28px 32px',
@@ -201,7 +201,7 @@ function PhoneTheme() {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        width: '300px',
+        width: 'min(300px, 85vw)',
         height: '380px',
         borderRadius: '32px',
         overflow: 'hidden',
@@ -295,11 +295,11 @@ function PhoneTheme() {
 function PhoneDeepLink() {
   return (
     <div style={{
-      width: '420px', height: '320px', borderRadius: '28px',
+      width: '100%', maxWidth: '420px', height: '320px', borderRadius: '28px',
       background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.12)',
       boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px',
-      padding: '0 40px', position: 'relative', overflow: 'hidden',
+      padding: '0 24px', position: 'relative', overflow: 'hidden',
     }}>
       {/* Share card */}
       <div style={{
@@ -396,7 +396,7 @@ export default function QueryExperience() {
   return (
     <section
       ref={ref}
-      className="relative max-w-6xl mx-auto px-8 pb-32"
+      className="relative max-w-6xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(48px)',
@@ -417,7 +417,7 @@ export default function QueryExperience() {
 
       <div className="flex flex-col lg:flex-row gap-10 items-center">
         {/* Feature list */}
-        <div className="flex flex-col gap-3 flex-1">
+        <div className="flex flex-col gap-3 flex-1 w-full">
           {features.map(({ icon, title, desc }, i) => (
             <div
               key={title}
@@ -480,14 +480,14 @@ export default function QueryExperience() {
 
         {/* Phone / card mockup */}
         <div
-          className="flex-1 flex items-center justify-center"
+          className="flex-1 flex items-center justify-center w-full overflow-hidden"
           style={{
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateX(0) scale(1)' : 'translateX(40px) scale(0.95)',
             transition: 'opacity 0.65s ease 0.25s, transform 0.65s cubic-bezier(0.22,1,0.36,1) 0.25s',
           }}
         >
-          <div key={activeIndex} style={{ animation: 'notifSlideIn 0.4s cubic-bezier(0.22,1,0.36,1) both' }}>
+          <div key={activeIndex} style={{ animation: 'notifSlideIn 0.4s cubic-bezier(0.22,1,0.36,1) both', maxWidth: '100%', overflow: 'hidden' }}>
             {phoneMap[activeIndex]}
           </div>
         </div>

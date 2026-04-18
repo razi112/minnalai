@@ -44,7 +44,7 @@ export default function HowItWorks() {
   return (
     <section
       ref={ref}
-      className="relative max-w-5xl mx-auto px-8 pb-32"
+      className="relative max-w-5xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(40px)',

@@ -4,7 +4,7 @@
   * { box-sizing: border-box; }
 
   :root {
-    font-size: 18px;
+    font-size: 16px;
     --bg-primary: #0f0f0f;
     --bg-secondary: #141414;
     --bg-hover: rgba(255,255,255,0.06);
@@ -25,7 +25,7 @@
     background: var(--bg-primary);
     color: var(--text-primary);
     transition: background 0.25s ease, color 0.25s ease;
-    font-size: 18px;
+    font-size: 16px;
   }
 
   ::-webkit-scrollbar { width: 4px; }

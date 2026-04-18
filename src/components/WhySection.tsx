@@ -109,7 +109,7 @@ export default function WhySection() {
   const langOptions = ['Malayalam', 'English', 'العربية', 'Melayu', 'Indonesia', 'Türkçe', 'Français']
 
   return (
-    <section ref={sectionRef} className="relative max-w-6xl mx-auto px-8 pb-32">
+    <section ref={sectionRef} className="relative max-w-6xl mx-auto px-4 sm:px-8 pb-20 sm:pb-32">
 
       {/* Heading row */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-14"
@@ -228,7 +228,7 @@ export default function WhySection() {
               <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 Engage with the AI, read localized UI elements natively, and speak in over 130+ different global languages. Support includes dynamic RTL typing for English.
               </p>
-              <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {languages.map(({ flag, name }, i) => (
                   <LangPill key={name} flag={flag} name={name} i={i} sectionVisible={sectionVisible} />
                 ))}

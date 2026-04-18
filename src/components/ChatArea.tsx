@@ -4,6 +4,7 @@ import TypingIndicator from './TypingIndicator'
 import InputBox from './InputBox'
 import type { ChatMode } from './InputBox'
 import type { Chat } from '../hooks/useChat'
+import { useAuth } from '../context/AuthContext'
 
 interface Props {
   chat: Chat | null
@@ -23,6 +24,17 @@ const SUGGESTIONS = [
 export default function ChatArea({ chat, isTyping, streamingContent, onSend, onRegenerate }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+
+  const firstName = (
+    user?.user_metadata?.full_name ??
+    user?.user_metadata?.name ??
+    user?.email?.split('@')[0] ??
+    null
+  )?.split(' ')[0]
+
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -36,9 +48,12 @@ export default function ChatArea({ chat, isTyping, streamingContent, onSend, onR
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full px-4 pb-8 gap-6">
             <div className="flex flex-col items-center gap-3 text-center">
-              <h2 className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                Minnal AI
+              <h2 className="text-2xl sm:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                {firstName ? `${greeting}, ${firstName}` : greeting}
               </h2>
+              <p className="text-base" style={{ color: 'var(--text-muted)' }}>
+                How can I help you today?
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
               {SUGGESTIONS.map((s) => (
