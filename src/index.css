@@ -28,7 +28,11 @@
     font-size: 16px;
   }
 
-  ::-webkit-scrollbar { width: 4px; }
+  html, body {
+    overflow-x: clip;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
@@ -131,6 +135,11 @@
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+  /* User message action buttons */
+  .msg-user-actions {
+    transition: opacity 0.15s ease;
+  }
   /* Page & section entrance animations */
   .fade-up {
     opacity: 0;
@@ -186,14 +195,12 @@
     transform: scale(1);
   }
   button:hover {
-    transform: scale(1.04);
+    transform: scale(1.03);
   }
   button:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
     transition-duration: 0.1s;
   }
-
-  /* Glow card — accent glow on hover */
   .glow-card {
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -240,11 +247,11 @@
   .streaming-word {
     display: inline;
     opacity: 0;
-    animation: wordFadeIn 0.35s ease forwards;
+    animation: wordFadeIn 0.25s ease forwards;
   }
   @keyframes wordFadeIn {
-    from { opacity: 0; transform: translateY(3px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   /* Soft blinking cursor at end of stream */
@@ -275,7 +282,7 @@
   }
 
   button:not(:disabled):active {
-    transform: scale(0.92);
+    transform: scale(0.95);
     transition: transform 0.08s ease;
   }
 
@@ -283,4 +290,8 @@
   button.rounded-xl:not(:disabled):active {
     transform: scale(0.96);
   }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

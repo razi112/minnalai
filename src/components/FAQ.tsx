@@ -136,7 +136,7 @@ export default function FAQ() {
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border)',
           borderRadius: '20px',
-          padding: '0 24px',
+          padding: '0 clamp(12px, 4vw, 24px)',
         }}
       >
         <style>{`.faq-btn:hover { transform: scale(1.01) !important; }`}</style>

@@ -8,7 +8,8 @@ interface Props {
 }
 
 export default function CanvasPanel({ html, onClose, onRegenerate }: Props) {
-  const [view, setView] = useState<'split' | 'preview' | 'code'>('split')
+  const isMobile = window.innerWidth < 640
+  const [view, setView] = useState<'split' | 'preview' | 'code'>(isMobile ? 'preview' : 'split')
   const [copied, setCopied] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -34,7 +35,7 @@ export default function CanvasPanel({ html, onClose, onRegenerate }: Props) {
     }}>
       <div style={{
         background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-        borderRadius: '20px', width: 'min(1100px, 96vw)', height: 'min(700px, 92vh)',
+        borderRadius: '20px', width: 'min(1100px, 96vw)', height: 'min(700px, 94vh)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* Header */}

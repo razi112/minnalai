@@ -21,7 +21,7 @@ function useScrollReveal(threshold = 0.12) {
 
 const PHONE: React.CSSProperties = {
   width: 'min(260px, 80vw)',
-  height: '520px',
+  height: 'min(520px, 70vh)',
   borderRadius: '48px',
   overflow: 'hidden',
   position: 'relative',
@@ -123,7 +123,7 @@ function PhoneOTP() {
       width: 'min(300px, 85vw)',
       background: '#1a1a1a',
       borderRadius: '28px',
-      padding: '36px 28px 32px',
+      padding: 'clamp(20px, 5vw, 36px) clamp(16px, 5vw, 28px)',
       border: '1px solid rgba(255,255,255,0.08)',
       boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
       display: 'flex',
@@ -295,7 +295,7 @@ function PhoneTheme() {
 function PhoneDeepLink() {
   return (
     <div style={{
-      width: '100%', maxWidth: '420px', height: '320px', borderRadius: '28px',
+      width: '100%', maxWidth: '420px', height: 'min(320px, 50vw)', minHeight: '220px', borderRadius: '28px',
       background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.12)',
       boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px',

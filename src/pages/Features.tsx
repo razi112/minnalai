@@ -75,7 +75,7 @@ function MainCard({ icon, title, desc, badge, color, index }: {
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setSpotlight(s => ({ ...s, opacity: 0 }))}
       className={`main-feat-card fade-up fade-up-delay-${index + 1}`}
-      style={{ position: 'relative', overflow: 'hidden', borderRadius: '20px', padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', cursor: 'default', transition: 'border-color 0.5s ease, box-shadow 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)' }}
+      style={{ position: 'relative', overflow: 'hidden', borderRadius: '20px', padding: 'clamp(18px, 4vw, 28px)', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', cursor: 'default', transition: 'border-color 0.5s ease, box-shadow 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)' }}
     >
       {/* Mouse spotlight */}
       <div style={{
@@ -158,7 +158,7 @@ function SecondaryCard({ icon, title, desc, color, index }: {
       onMouseLeave={() => setTilt({ rx: 0, ry: 0, active: false })}
       className={`sec-feat-card fade-up fade-up-delay-${(index % 4) + 1}`}
       style={{
-        position: 'relative', overflow: 'hidden', borderRadius: '16px', padding: '20px',
+        position: 'relative', overflow: 'hidden', borderRadius: '16px', padding: 'clamp(14px, 3vw, 20px)',
         display: 'flex', gap: '16px', alignItems: 'flex-start',
         background: 'var(--bg-secondary)', border: '1px solid var(--border)',
         cursor: 'default',
@@ -289,7 +289,18 @@ export default function Features() {
         </section>
 
         <footer className="text-center pb-8 text-xs fade-in" style={{ color: 'var(--text-muted)', animationDelay: '0.6s' }}>
-          © {new Date().getFullYear()} Minnal AI. All rights reserved.
+          © {new Date().getFullYear()}{' '}
+          <span style={{
+            fontFamily: "'Georgia', 'Times New Roman', serif",
+            fontStyle: 'italic',
+            fontWeight: 700,
+            fontSize: '13px',
+            background: 'linear-gradient(135deg, #a78bfa, #60a5fa, #34d399)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '0.04em',
+          }}>Minnal AI</span>. All rights reserved.
         </footer>
       </div>
     </PageTransition>

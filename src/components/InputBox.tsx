@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
-import { ArrowUp, Paperclip, X, ChevronUp, Image, PenLine, Globe } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
+import { ArrowUp, Paperclip, X, ChevronUp, Image, PenLine, Globe, Search, Mic, MicOff, Brain } from 'lucide-react'
 
 interface ImageAttachment {
   base64: string
@@ -7,7 +7,7 @@ interface ImageAttachment {
   previewUrl: string
 }
 
-export type ChatMode = 'default' | 'image' | 'canvas' | 'deep-search'
+export type ChatMode = 'default' | 'image' | 'canvas' | 'deep-search' | 'web-search' | 'thinking'
 
 interface Props {
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
@@ -15,28 +15,36 @@ interface Props {
 }
 
 const TOOLS = [
-  { mode: 'image' as const,       label: 'Create Image', icon: <Image size={14} />,   desc: 'Generate an image from text' },
-  { mode: 'canvas' as const,      label: 'Canvas',       icon: <PenLine size={14} />, desc: 'Build a webpage with live preview' },
-  { mode: 'deep-search' as const, label: 'Deep Search',  icon: <Globe size={14} />,   desc: 'Thorough research response' },
+  { mode: 'thinking' as const,    label: 'Think',         icon: <Brain size={14} />,   desc: 'Reason step-by-step before answering' },
+  { mode: 'image' as const,       label: 'Create Image',  icon: <Image size={14} />,   desc: 'Generate stunning AI images from text' },
+  { mode: 'canvas' as const,      label: 'Canvas',        icon: <PenLine size={14} />, desc: 'Build a beautiful webpage with live preview' },
+  { mode: 'web-search' as const,  label: 'Web Search',    icon: <Search size={14} />,  desc: 'Search DuckDuckGo + Wikipedia in real time' },
+  { mode: 'deep-search' as const, label: 'Deep Research', icon: <Globe size={14} />,   desc: 'Structured multi-section research report' },
 ]
+
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+const hasSpeech = !!SpeechRecognition
 
 export default function InputBox({ onSend, disabled }: Props) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<ImageAttachment[]>([])
   const [activeMode, setActiveMode] = useState<ChatMode>('default')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  useEffect(() => () => recognitionRef.current?.abort(), [])
 
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
+    el.style.height = Math.min(el.scrollHeight, window.innerWidth < 640 ? 120 : 200) + 'px'
   }, [value])
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {
@@ -45,6 +53,33 @@ export default function InputBox({ onSend, disabled }: Props) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [menuOpen])
+
+  const toggleVoice = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+    if (!hasSpeech) return
+    const recognition = new SpeechRecognition()
+    recognition.continuous = true
+    recognition.interimResults = true
+    let final = ''
+    recognition.onstart = () => setIsListening(true)
+    recognition.onresult = (e: any) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript
+        if (e.results[i].isFinal) final += t + ' '
+        else interim = t
+      }
+      setValue(final + interim)
+    }
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend = () => setIsListening(false)
+    recognitionRef.current = recognition
+    recognition.start()
+  }, [isListening])
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return
@@ -64,6 +99,7 @@ export default function InputBox({ onSend, disabled }: Props) {
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx))
 
   const handleSend = () => {
+    if (isListening) { recognitionRef.current?.stop(); setIsListening(false) }
     const trimmed = value.trim()
     if ((!trimmed && images.length === 0) || disabled) return
     onSend(trimmed, images.map(({ base64, mimeType }) => ({ base64, mimeType })), activeMode)
@@ -82,18 +118,19 @@ export default function InputBox({ onSend, disabled }: Props) {
     handleFiles(e.dataTransfer.files)
   }
 
-  const selectTool = (mode: ChatMode | 'canvas') => {
+  const selectTool = (mode: ChatMode) => {
     setMenuOpen(false)
-    setActiveMode(prev => prev === mode ? 'default' : mode as ChatMode)
+    setActiveMode(prev => prev === mode ? 'default' : mode)
   }
 
   const canSend = (value.trim().length > 0 || images.length > 0) && !disabled
-
   const activeTool = TOOLS.find(t => t.mode === activeMode)
 
   const placeholder =
+    activeMode === 'thinking' ? 'Ask anything — AI will think step by step…' :
     activeMode === 'image' ? 'Describe the image you want to create…' :
     activeMode === 'canvas' ? 'Describe the website or app to build…' :
+    activeMode === 'web-search' ? 'Search the web for anything…' :
     activeMode === 'deep-search' ? 'What do you want to research in depth?' :
     images.length > 0 ? 'Add a message or send image…' : 'Ask anything…'
 
@@ -136,10 +173,7 @@ export default function InputBox({ onSend, disabled }: Props) {
               >
                 {activeTool.icon}
                 {activeTool.label}
-                <button
-                  onClick={() => setActiveMode('default')}
-                  style={{ marginLeft: '2px', opacity: 0.8, lineHeight: 1 }}
-                >
+                <button onClick={() => setActiveMode('default')} style={{ marginLeft: '2px', opacity: 0.8, lineHeight: 1 }}>
                   <X size={10} />
                 </button>
               </span>
@@ -170,8 +204,8 @@ export default function InputBox({ onSend, disabled }: Props) {
               placeholder={placeholder}
               rows={1}
               disabled={disabled}
-              className="flex-1 bg-transparent text-sm resize-none outline-none leading-relaxed max-h-[200px] overflow-y-auto disabled:opacity-50"
-              style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)' }}
+              className="flex-1 bg-transparent text-sm resize-none outline-none leading-relaxed max-h-[120px] sm:max-h-[200px] overflow-y-auto disabled:opacity-50"
+              style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)', WebkitAppearance: 'none' }}
             />
 
             {/* Tools button */}
@@ -189,13 +223,12 @@ export default function InputBox({ onSend, disabled }: Props) {
                 <ChevronUp size={16} style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
               </button>
 
-              {/* Popup menu */}
               {menuOpen && (
                 <div
                   style={{
                     position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
                     background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                    borderRadius: '14px', padding: '6px', minWidth: '200px',
+                    borderRadius: '14px', padding: '6px', minWidth: 'min(200px, calc(100vw - 32px))',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                     animation: 'menuPop 0.18s cubic-bezier(0.34,1.56,0.64,1)',
                     zIndex: 100,
@@ -205,6 +238,10 @@ export default function InputBox({ onSend, disabled }: Props) {
                     @keyframes menuPop {
                       from { opacity:0; transform: scale(0.92) translateY(6px); }
                       to   { opacity:1; transform: scale(1) translateY(0); }
+                    }
+                    @keyframes micPulse {
+                      0%, 100% { opacity: 1; transform: scale(1); }
+                      50%      { opacity: 0.3; transform: scale(1.18); }
                     }
                   `}</style>
                   {TOOLS.map(tool => {
@@ -233,19 +270,44 @@ export default function InputBox({ onSend, disabled }: Props) {
               )}
             </div>
 
-            {/* Send */}
-            <button
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Send message"
-              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5"
-              style={canSend
-                ? { background: 'var(--text-primary)', color: 'var(--bg-primary)' }
-                : { background: 'var(--bg-hover)', color: 'var(--text-muted)', cursor: 'not-allowed' }
-              }
-            >
-              <ArrowUp size={15} />
-            </button>
+            {/* Send / Voice — one smart button */}
+            {canSend ? (
+              <button
+                onClick={handleSend}
+                title="Send message"
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5"
+                style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+              >
+                <ArrowUp size={15} />
+              </button>
+            ) : hasSpeech ? (
+              <button
+                onClick={toggleVoice}
+                disabled={disabled}
+                title={isListening ? 'Stop' : 'Voice input'}
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5 disabled:opacity-30"
+                style={{
+                  background: isListening ? 'var(--accent)' : 'var(--bg-hover)',
+                  color: isListening ? '#fff' : 'var(--text-muted)',
+                  position: 'relative',
+                }}
+              >
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+                {isListening && (
+                  <span style={{
+                    position: 'absolute', inset: '-3px', borderRadius: '14px',
+                    border: '2px solid var(--accent)',
+                    animation: 'micPulse 1.2s ease-in-out infinite',
+                    pointerEvents: 'none',
+                  }} />
+                )}
+              </button>
+            ) : (
+              <button disabled className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mb-0.5"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
+                <ArrowUp size={15} />
+              </button>
+            )}
           </div>
         </div>
 

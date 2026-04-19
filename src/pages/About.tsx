@@ -53,7 +53,7 @@ export default function About() {
         {/* Story */}
         <section className="relative max-w-3xl mx-auto px-4 sm:px-8 pb-16 sm:pb-20 fade-up fade-up-delay-3">
           <div
-            className="glow-card hover-scale rounded-2xl p-8"
+            className="glow-card hover-scale rounded-2xl p-5 sm:p-8"
             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
           >
             <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Why we built this</h2>
@@ -80,7 +80,7 @@ export default function About() {
             {stack.map(({ icon, name, role, desc }, i) => (
               <div
                 key={name}
-                className={`glow-card hover-scale rounded-2xl p-6 flex flex-col gap-3 fade-up fade-up-delay-${i + 2}`}
+                className={`glow-card hover-scale rounded-2xl p-4 sm:p-6 flex flex-col gap-3 fade-up fade-up-delay-${i + 2}`}
                 style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
               >
                 <div

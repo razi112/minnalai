@@ -15,9 +15,9 @@ export default function App() {
   const [canInstall, setCanInstall] = useState(false)
 
   const {
-    chats, activeChat, activeChatId, isTyping, streamingContent,
+    chats, activeChat, activeChatId, isTyping, streamingContent, streamingThinking,
     setActiveChatId, createChat, deleteChat, renameChat,
-    sendMessage, regenerate, clearAllChats,
+    sendMessage, regenerate, editMessage, clearAllChats,
   } = useChat()
 
   // 🔥 Capture install event
@@ -59,7 +59,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden text-app" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="flex h-screen w-full overflow-hidden text-app" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       
       {/* Mobile overlay */}
       {mobileSidebarOpen && (
@@ -164,8 +164,10 @@ export default function App() {
           chat={activeChat}
           isTyping={isTyping}
           streamingContent={streamingContent}
+          streamingThinking={streamingThinking}
           onSend={sendMessage}
           onRegenerate={regenerate}
+          onEditMessage={editMessage}
         />
       </div>
 

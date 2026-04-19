@@ -16,5 +16,9 @@ export default function PageTransition({ children }: { children: ReactNode }) {
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  return <div ref={ref}>{children}</div>
+  return (
+    <div ref={ref}>
+      {children}
+    </div>
+  )
 }

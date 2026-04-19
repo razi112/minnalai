@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Copy, Check, ThumbsUp, ThumbsDown, Share, RefreshCw, MoreHorizontal, Code2, Download, Share2 } from 'lucide-react'
+import { Copy, Check, ThumbsUp, ThumbsDown, Share, RefreshCw, MoreHorizontal, Code2, Download, Share2, Pencil, ChevronDown, Brain } from 'lucide-react'
 import type { Message } from '../hooks/useChat'
 import CanvasPanel from './CanvasPanel'
 
@@ -12,12 +12,32 @@ interface Props {
   isStreaming?: boolean
   isLast?: boolean
   onRegenerate?: () => void
+  onEdit?: (content: string) => void
   disabled?: boolean
+  streamingThinking?: string
+}
+
+// Strip markdown symbols for clean streaming display
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s*/g, '')          // headings: ## ### etc
+    .replace(/\*\*(.+?)\*\*/g, '$1')    // bold **text**
+    .replace(/\*(.+?)\*/g, '$1')        // italic *text*
+    .replace(/`{3}[\s\S]*?`{3}/g, '')   // fenced code blocks
+    .replace(/`([^`]+)`/g, '$1')        // inline code
+    .replace(/^\s*[-*+]\s+/gm, '')      // unordered list bullets
+    .replace(/^\s*\d+\.\s+/gm, '')      // ordered list numbers
+    .replace(/^>\s+/gm, '')             // blockquotes
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links [text](url)
+    .replace(/_{1,2}(.+?)_{1,2}/g, '$1')     // underscores _text_
+    .replace(/~~(.+?)~~/g, '$1')             // strikethrough
+    .replace(/\n{3,}/g, '\n\n')              // collapse excess newlines
 }
 
 // Renders streaming text with smooth word-by-word fade-in
 function StreamingText({ content }: { content: string }) {
-  const words = content.split(/(\s+)/)
+  const clean = stripMarkdown(content)
+  const words = clean.split(/(\s+)/)
   const prevLenRef = useRef(0)
   const currentLen = words.length
 
@@ -28,7 +48,7 @@ function StreamingText({ content }: { content: string }) {
   const prevLen = prevLenRef.current
 
   return (
-    <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.75 }}>
+    <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
       {words.map((word, i) => (
         <span
           key={i}
@@ -38,8 +58,37 @@ function StreamingText({ content }: { content: string }) {
           {word}
         </span>
       ))}
-      <span className="streaming-cursor" />
     </span>
+  )
+}
+
+function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming?: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mb-3" style={{ borderRadius: '10px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors"
+        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', fontSize: '12px' }}
+      >
+        <Brain size={13} style={{ color: 'var(--accent)', flexShrink: 0, animation: isStreaming && !open ? 'spin 2s linear infinite' : 'none' }} />
+        <span style={{ flex: 1, fontWeight: 500 }}>
+          {isStreaming ? 'Thinking…' : 'Thought process'}
+        </span>
+        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+      </button>
+      <div style={{
+        maxHeight: open ? '400px' : '0',
+        overflow: 'hidden',
+        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <div className="px-3 py-2 overflow-y-auto" style={{ maxHeight: '400px', background: 'var(--bg-secondary)' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+            {thinking}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -82,6 +131,28 @@ function CodeBlock({ language, children }: { language: string; children: string 
 
 function PollinationsImage({ src }: { src: string; index?: number }) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
+  const [retryCount, setRetryCount] = useState(0)
+  const [imgSrc, setImgSrc] = useState(src)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-retry up to 3 times with increasing delay
+  const handleError = () => {
+    if (retryCount < 3) {
+      const delay = (retryCount + 1) * 4000
+      retryTimerRef.current = setTimeout(() => {
+        setRetryCount((c) => c + 1)
+        // Bust cache by appending a new seed param
+        const base = src.replace(/&seed=\d+/, '')
+        setImgSrc(`${base}&seed=${Date.now()}`)
+      }, delay)
+    } else {
+      setStatus('error')
+    }
+  }
+
+  useEffect(() => {
+    return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current) }
+  }, [])
 
   const [copied, setCopied] = useState(false)
 
@@ -132,7 +203,7 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
     <div className="relative group inline-block">
       {status === 'loading' && (
         <div
-          className="rounded-2xl flex items-center justify-center text-xs"
+          className="rounded-2xl flex flex-col items-center justify-center gap-3 text-xs"
           style={{
             width: 'min(320px, 70vw)', height: 'min(320px, 70vw)',
             background: 'var(--bg-secondary)',
@@ -140,11 +211,20 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
             color: 'var(--text-muted)',
           }}
         >
-          Generating image...
+          {/* Spinner */}
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '3px solid var(--border)',
+            borderTopColor: 'var(--accent)',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {retryCount > 0 ? `Retrying… (${retryCount}/3)` : 'Generating image…'}
+          </span>
         </div>
       )}
       <img
-        src={src}
+        src={imgSrc}
         alt="Generated image"
         className="rounded-2xl object-cover"
         style={{
@@ -153,15 +233,32 @@ function PollinationsImage({ src }: { src: string; index?: number }) {
           display: status === 'loaded' ? 'block' : 'none',
         }}
         onLoad={() => setStatus('loaded')}
-        onError={() => setStatus('error')}
+        onError={handleError}
       />
       {status === 'error' && (
         <div
-          className="rounded-2xl flex flex-col items-center justify-center gap-2 text-xs"
+          className="rounded-2xl flex flex-col items-center justify-center gap-3 text-xs"
           style={{ width: 'min(320px, 70vw)', height: 160, background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
         >
           <span>Failed to load image</span>
-          <a href={src} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Open in browser</a>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setStatus('loading')
+                setRetryCount(0)
+                const base = src.replace(/&seed=\d+/, '')
+                setImgSrc(`${base}&seed=${Date.now()}`)
+              }}
+              style={{
+                fontSize: '11px', fontWeight: 600, padding: '5px 12px',
+                borderRadius: '8px', background: 'var(--accent)', color: '#fff',
+                border: 'none', cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+            <a href={src} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontSize: '11px' }}>Open in browser</a>
+          </div>
         </div>
       )}
       {status === 'loaded' && (
@@ -211,17 +308,35 @@ function ActionBtn({ onClick, title, active, disabled, children }: {
   )
 }
 
-export default function MessageBubble({ message, isStreaming, isLast, onRegenerate, disabled }: Props) {
+export default function MessageBubble({ message, isStreaming, isLast, onRegenerate, onEdit, disabled, streamingThinking }: Props) {
   const isUser = message.role === 'user'
   const [liked, setLiked] = useState<'up' | 'down' | null>(null)
   const [copied, setCopied] = useState(false)
+  const [userCopied, setUserCopied] = useState(false)
   const [shared, setShared] = useState(false)
   const [canvasOpen, setCanvasOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(message.content)
+  const editRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (isEditing && editRef.current) {
+      editRef.current.focus()
+      editRef.current.style.height = 'auto'
+      editRef.current.style.height = editRef.current.scrollHeight + 'px'
+    }
+  }, [isEditing])
 
   const copyMessage = () => {
     navigator.clipboard.writeText(message.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyUserMessage = () => {
+    navigator.clipboard.writeText(message.content)
+    setUserCopied(true)
+    setTimeout(() => setUserCopied(false), 2000)
   }
 
   const shareMessage = () => {
@@ -230,27 +345,89 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
     setTimeout(() => setShared(false), 2000)
   }
 
+  const submitEdit = () => {
+    const trimmed = editValue.trim()
+    if (trimmed && trimmed !== message.content && onEdit) {
+      onEdit(trimmed)
+    }
+    setIsEditing(false)
+  }
+
   if (isUser) {
     return (
       <div className="flex justify-end px-3 sm:px-4 py-2 message-fade-in max-w-3xl mx-auto w-full">
-        <div
-          className="max-w-[85%] sm:max-w-[75%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed flex flex-col gap-2"
-          style={{ background: 'var(--bubble-user)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-        >
-          {message.images && message.images.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {message.images.map((img, i) => (
-                <img
-                  key={i}
-                  src={`data:${img.mimeType};base64,${img.base64}`}
-                  alt=""
-                  className="max-w-[200px] max-h-[200px] rounded-xl object-cover"
-                  style={{ border: '1px solid var(--border)' }}
+      <div className="group flex flex-col items-end gap-1 max-w-[85%] sm:max-w-[75%]">
+          {/* Bubble */}
+          <div
+            className="rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed flex flex-col gap-2 w-full"
+            style={{ background: 'var(--bubble-user)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+          >
+            {message.images && message.images.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {message.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={`data:${img.mimeType};base64,${img.base64}`}
+                    alt=""
+                    className="max-w-[200px] max-h-[200px] rounded-xl object-cover"
+                    style={{ border: '1px solid var(--border)' }}
+                  />
+                ))}
+              </div>
+            )}
+            {isEditing ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  ref={editRef}
+                  value={editValue}
+                  onChange={e => {
+                    setEditValue(e.target.value)
+                    e.target.style.height = 'auto'
+                    e.target.style.height = e.target.scrollHeight + 'px'
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit() }
+                    if (e.key === 'Escape') { setIsEditing(false); setEditValue(message.content) }
+                  }}
+                  rows={1}
+                  className="w-full bg-transparent resize-none outline-none text-sm leading-relaxed overflow-hidden"
+                  style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)', borderBottom: '1px solid var(--accent-border)', paddingBottom: '4px' }}
                 />
-              ))}
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => { setIsEditing(false); setEditValue(message.content) }}
+                    className="text-xs px-3 py-1 rounded-lg"
+                    style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitEdit}
+                    className="text-xs px-3 py-1 rounded-lg font-semibold"
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none' }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            ) : (
+              message.content && <span>{message.content}</span>
+            )}
+          </div>
+
+          {/* Action buttons — shown on hover */}
+          {!isEditing && message.content && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 msg-user-actions">
+              <ActionBtn onClick={copyUserMessage} title={userCopied ? 'Copied!' : 'Copy'} active={userCopied}>
+                {userCopied ? <Check size={12} /> : <Copy size={12} />}
+              </ActionBtn>
+              {onEdit && (
+                <ActionBtn onClick={() => { setIsEditing(true); setEditValue(message.content) }} title="Edit message">
+                  <Pencil size={12} />
+                </ActionBtn>
+              )}
             </div>
           )}
-          {message.content && <span>{message.content}</span>}
         </div>
       </div>
     )
@@ -272,6 +449,12 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
               )
             })}
           </div>
+        )}
+        {(message.thinking || (isStreaming && streamingThinking)) && (
+          <ThinkingBlock
+            thinking={message.thinking ?? streamingThinking ?? ''}
+            isStreaming={isStreaming && !message.thinking}
+          />
         )}
         {message.content && (
           isStreaming

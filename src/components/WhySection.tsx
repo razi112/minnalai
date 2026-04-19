@@ -228,7 +228,7 @@ export default function WhySection() {
               <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 Engage with the AI, read localized UI elements natively, and speak in over 130+ different global languages. Support includes dynamic RTL typing for English.
               </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {languages.map(({ flag, name }, i) => (
                   <LangPill key={name} flag={flag} name={name} i={i} sectionVisible={sectionVisible} />
                 ))}

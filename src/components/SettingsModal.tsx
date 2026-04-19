@@ -175,7 +175,7 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
-        className={`w-full max-w-2xl max-h-[90vh] border rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-250 mx-4 ${
+        className={`w-full max-w-2xl max-h-[92vh] border rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-250 mx-3 sm:mx-4 ${
           visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
         }`}
         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', boxShadow: '0 25px 60px rgba(0,0,0,0.4)' }}
@@ -197,7 +197,7 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
         {/* Body */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0">
           {/* Sidebar nav — horizontal scroll on mobile, vertical on sm+ */}
-          <nav className="sm:w-44 shrink-0 py-2 sm:py-3 px-2 flex sm:flex-col flex-row overflow-x-auto gap-0.5 sm:space-y-0.5" style={{ borderBottom: '1px solid var(--border)' }} >
+          <nav className="sm:w-44 shrink-0 py-2 sm:py-3 px-2 flex sm:flex-col flex-row overflow-x-auto gap-0.5 sm:space-y-0.5 pb-1 sm:pb-3" style={{ borderBottom: '1px solid var(--border)' }} >
             <style>{`.settings-nav { border-bottom: 1px solid var(--border); } @media (min-width: 640px) { .settings-nav { border-bottom: none; border-right: 1px solid var(--border); } }`}</style>
             <div className="settings-nav flex sm:flex-col flex-row gap-0.5 w-full">
             {SECTIONS.map((s) => (

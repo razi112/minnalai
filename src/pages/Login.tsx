@@ -143,7 +143,7 @@ export default function Login() {
 
       <div className="relative w-full max-w-sm">
         <div
-          className="rounded-2xl px-8 py-9 flex flex-col gap-5"
+          className="rounded-2xl px-6 py-8 flex flex-col gap-5"
           style={{
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border)',

@@ -124,7 +124,7 @@ export default function Navbar() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div
-          className="md:hidden mt-2 rounded-2xl px-4 py-4 flex flex-col gap-3"
+          className="md:hidden mt-2 mx-1 rounded-2xl px-4 py-4 flex flex-col gap-3"
           style={{
             background: isDark ? 'rgba(20,20,20,0.95)' : 'rgba(255,255,255,0.95)',
             border: '1px solid var(--border)',

@@ -10,8 +10,10 @@ interface Props {
   chat: Chat | null
   isTyping: boolean
   streamingContent: string
+  streamingThinking: string
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
   onRegenerate: () => void
+  onEditMessage?: (messageIndex: number, newContent: string) => void
 }
 
 const SUGGESTIONS = [
@@ -21,7 +23,7 @@ const SUGGESTIONS = [
   'Help me debug this TypeScript error',
 ]
 
-export default function ChatArea({ chat, isTyping, streamingContent, onSend, onRegenerate }: Props) {
+export default function ChatArea({ chat, isTyping, streamingContent, streamingThinking, onSend, onRegenerate, onEditMessage }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
@@ -55,7 +57,7 @@ export default function ChatArea({ chat, isTyping, streamingContent, onSend, onR
                 How can I help you today?
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-full sm:max-w-xl px-2">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
@@ -88,12 +90,13 @@ export default function ChatArea({ chat, isTyping, streamingContent, onSend, onR
                 message={msg}
                 isLast={i === chat.messages.length - 1}
                 onRegenerate={onRegenerate}
+                onEdit={msg.role === 'user' && onEditMessage ? (content) => onEditMessage(i, content) : undefined}
                 disabled={isTyping}
               />
             ))}
             {isTyping && (
               streamingContent
-                ? <MessageBubble message={{ id: 'streaming', role: 'assistant', content: streamingContent, timestamp: new Date() }} isStreaming />
+                ? <MessageBubble message={{ id: 'streaming', role: 'assistant', content: streamingContent, thinking: streamingThinking || undefined, timestamp: new Date() }} isStreaming streamingThinking={streamingThinking} />
                 : <TypingIndicator />
             )}
             <div ref={bottomRef} />

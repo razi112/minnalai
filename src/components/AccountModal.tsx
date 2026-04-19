@@ -108,7 +108,7 @@ export default function AccountModal({ onClose }: Props) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full max-w-sm rounded-2xl overflow-hidden"
+        className="w-full max-w-sm mx-3 sm:mx-0 rounded-2xl overflow-hidden"
         style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}
       >
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>

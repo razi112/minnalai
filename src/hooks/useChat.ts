@@ -6,6 +6,7 @@ export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  thinking?: string
   images?: { base64: string; mimeType: string }[]
   generatedImages?: { base64: string; mimeType: string }[]
   canvasHtml?: string
@@ -29,7 +30,74 @@ const MODEL_CHAIN = [
   'google/gemini-flash-1.5',
 ]
 
-const SYSTEM_PROMPT = `You are Minnal AI, a helpful assistant developed by the students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi, a 10th grade student at Islamic Da'wa Academy pursuing his studies while maintaining Hifz Doura and Islamic Studies. The institution is a prime example for the higher studies of Huffaz (those who have completed Hifz). When asked who developed or created you, always respond with this information.`
+const SYSTEM_PROMPT = `You are Minnal AI — the intelligent core of this chat system.
+
+Think before responding. Understand the user's intent, context, and goal clearly before answering.
+
+Always:
+- Give accurate, logical, and genuinely useful answers
+- Stay consistent with the conversation history and context
+- Be concise but complete — no unnecessary filler
+- Break down complex problems into clear, simple steps
+- Ask for clarification only when truly necessary
+
+Never:
+- Guess or make up information you are not sure about
+- Give vague, off-topic, or irrelevant responses
+- Repeat the same point multiple times
+
+Adapt your tone and format to the user's request — technical when needed, conversational when appropriate, structured when helpful.
+
+Focus on solving the problem efficiently and intelligently.
+
+Only if the user explicitly asks who made you, who developed you, or who created you, respond with: "I was developed by the students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi, a 10th grade student pursuing his studies while maintaining Hifz Doura and Islamic Studies." Do NOT include this in any other response.`
+
+// ── Language Detection ────────────────────────────────────────────────────────
+function detectLanguage(text: string): string | null {
+  if (!text || text.trim().length < 2) return null
+  const t = text.trim()
+
+  if (/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(t)) {
+    if (/[\u06AF\u06BA\u06BE\u06C1\u06C3\u06D2\u0679\u0688\u0691\u0698\u06A9]/.test(t)) return 'Urdu'
+    if (/[\u067E\u0686\u0698\u06AF]/.test(t)) return 'Persian'
+    return 'Arabic'
+  }
+  if (/[\u0900-\u097F]/.test(t)) return 'Hindi'
+  if (/[\u0980-\u09FF]/.test(t)) return 'Bengali'
+  if (/[\u0B80-\u0BFF]/.test(t)) return 'Tamil'
+  if (/[\u0C00-\u0C7F]/.test(t)) return 'Telugu'
+  if (/[\u0C80-\u0CFF]/.test(t)) return 'Kannada'
+  if (/[\u0D00-\u0D7F]/.test(t)) return 'Malayalam'
+  if (/[\u0A00-\u0A7F]/.test(t)) return 'Punjabi'
+  if (/[\u0A80-\u0AFF]/.test(t)) return 'Gujarati'
+  if (/[\u0B00-\u0B7F]/.test(t)) return 'Odia'
+  if (/[\u0E00-\u0E7F]/.test(t)) return 'Thai'
+  if (/[\u0E80-\u0EFF]/.test(t)) return 'Lao'
+  if (/[\u1000-\u109F]/.test(t)) return 'Burmese'
+  if (/[\u4E00-\u9FFF\u3400-\u4DBF]/.test(t)) {
+    if (/[\u3040-\u30FF]/.test(t)) return 'Japanese'
+    return 'Chinese'
+  }
+  if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(t)) return 'Korean'
+  if (/[\u0400-\u04FF]/.test(t)) return 'Russian'
+  if (/[\u0370-\u03FF]/.test(t)) return 'Greek'
+  if (/[\u0590-\u05FF]/.test(t)) return 'Hebrew'
+
+  const lower = t.toLowerCase()
+  const words: string[] = lower.match(/\b[a-z\u00c0-\u024f]+\b/g) ?? []
+  if (words.length === 0) return null
+  const freq = (list: string[]) => list.filter((w: string) => words.includes(w)).length / words.length
+
+  if (freq(['el','la','los','las','de','en','que','es','un','una','por','con','para','como','pero','más','este','esta','son','tiene','hay','muy','todo','también','cuando','donde','porque','entre','sobre','hasta','desde','sin','nos','les','fue','ser','estar','hacer','puede','bien','así','ya','si','no','me','te','se','lo','le','su','sus','al','del']) > 0.12) return 'Spanish'
+  if (freq(['le','la','les','de','du','des','un','une','et','en','que','qui','est','pas','pour','dans','sur','avec','au','aux','ce','se','je','tu','il','nous','vous','ils','elle','elles','mais','ou','donc','or','ni','car','plus','très','bien','tout','même','aussi','comme','quand','où','si','non','oui','être','avoir','faire','aller','voir','venir','dire','savoir','pouvoir','vouloir']) > 0.12) return 'French'
+  if (freq(['der','die','das','den','dem','des','ein','eine','und','in','ist','von','zu','mit','auf','für','an','im','nicht','auch','es','ich','du','er','sie','wir','ihr','haben','sein','werden','können','müssen','sollen','wollen','dürfen','mögen','aber','oder','wenn','weil','dass','als','wie','noch','schon','nur','sehr','mehr','so','da','hier','dort','nach','vor','über','unter','zwischen','durch','gegen','ohne','um','bei','seit','bis','aus']) > 0.12) return 'German'
+  if (freq(['o','a','os','as','de','do','da','dos','das','em','no','na','nos','nas','um','uma','e','que','é','para','com','por','não','se','mais','como','mas','ao','à','ele','ela','eles','elas','eu','tu','nós','ser','estar','ter','fazer','poder','querer','saber','ver','vir','ir','dar','dizer','ficar','deixar','falar','muito','bem','já','ainda','também','quando','onde','porque','então','assim','mesmo','cada','todo','toda','todos','todas']) > 0.12) return 'Portuguese'
+  if (freq(['il','lo','la','i','gli','le','di','del','della','dei','degli','delle','un','una','e','in','che','è','per','con','non','si','come','ma','su','anche','più','già','molto','bene','tutto','tutti','tutte','quando','dove','perché','così','ancora','sempre','mai','poi','ora','qui','lì','io','tu','lui','lei','noi','voi','loro','essere','avere','fare','andare','venire','vedere','sapere','potere','volere','dovere','stare','dare','dire','prendere','mettere','trovare','lasciare','parlare','capire']) > 0.12) return 'Italian'
+  if (freq(['bir','bu','ve','de','da','ile','için','ben','sen','var','yok','ne','nasıl','nerede','kim','hangi','çok','az','iyi','kötü','büyük','küçük','yeni','eski','gibi','daha','en','ama','veya','evet','hayır','tamam','lütfen','teşekkür','merhaba','güzel','zaman','gün','yıl','ay','saat','para','iş','ev','okul','şehir','ülke','insan','adam','kadın','çocuk','anne','baba','arkadaş','bilgi','dünya','hayat','su','yemek','gelmek','gitmek','yapmak','olmak','vermek','almak','görmek','bilmek','istemek','söylemek','demek','bulmak','düşünmek','anlamak','başlamak','çalışmak','oturmak','beklemek','sevmek']) > 0.1) return 'Turkish'
+  if (freq(['yang','dan','di','ke','dari','ini','itu','dengan','untuk','tidak','ada','saya','anda','kita','mereka','adalah','akan','sudah','bisa','juga','lebih','sangat','atau','tapi','karena','jika','ketika','bagaimana','apa','siapa','mana','berapa','ya','baik','besar','kecil','baru','lama','orang','hari','tahun','bulan','waktu','tempat','negara','kota','rumah','sekolah','kerja','uang','makan','minum','pergi','datang','lihat','tahu','mau','buat','ambil','kasih','bilang','pikir','mulai','cari','jalan','nama','teman','keluarga','anak','ibu','bapak','dunia','hidup','air','makanan']) > 0.1) return 'Malay'
+
+  return null
+}
 
 function buildMessages(messages: Message[], userContent: string, images: { base64: string; mimeType: string }[]) {
   const history = messages.map((m) => ({
@@ -47,14 +115,22 @@ function buildMessages(messages: Message[], userContent: string, images: { base6
     ? { role: 'user', content: userParts }
     : { role: 'user', content: userContent }
 
-  return [{ role: 'system', content: SYSTEM_PROMPT }, ...history, userMessage]
+  // Detect language and append instruction to system prompt
+  const detectedLang = detectLanguage(userContent)
+  const langInstruction = detectedLang
+    ? `\n\nIMPORTANT: The user is writing in ${detectedLang}. You MUST reply entirely in ${detectedLang}. Do not switch languages.`
+    : ''
+  const systemPrompt = SYSTEM_PROMPT + langInstruction
+
+  return [{ role: 'system', content: systemPrompt }, ...history, userMessage]
 }
 
 async function streamWithFallback(
   messages: Message[],
   userContent: string,
   images: { base64: string; mimeType: string }[],
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  maxTokens = 4096
 ): Promise<string> {
   const builtMessages = buildMessages(messages, userContent, images)
 
@@ -72,7 +148,7 @@ async function streamWithFallback(
           model,
           messages: builtMessages,
           stream: true,
-          max_tokens: 2048,
+          max_tokens: maxTokens,
         }),
       })
 
@@ -115,6 +191,141 @@ async function streamWithFallback(
   }
 
   throw new Error('All models are currently unavailable. Please try again.')
+}
+
+// ── Web Search — multi-source (DuckDuckGo + Wikipedia) ───────────────────────
+async function fetchWebSearchContext(query: string): Promise<string> {
+  const results: string[] = []
+
+  // Source 1: DuckDuckGo Instant Answer
+  try {
+    const ddgRes = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`
+    )
+    if (ddgRes.ok) {
+      const d = await ddgRes.json()
+      if (d.AbstractText) results.push(`**DuckDuckGo Summary:**\n${d.AbstractText}\n${d.AbstractURL ? `Source: ${d.AbstractURL}` : ''}`)
+      if (d.Answer) results.push(`**Instant Answer:** ${d.Answer}`)
+      if (d.Definition) results.push(`**Definition:** ${d.Definition}${d.DefinitionURL ? `\nSource: ${d.DefinitionURL}` : ''}`)
+      const topics = (d.RelatedTopics ?? []).filter((t: any) => t.Text).slice(0, 4)
+      if (topics.length) results.push(`**Related Topics:**\n${topics.map((t: any) => `- ${t.Text}`).join('\n')}`)
+    }
+  } catch { /* continue */ }
+
+  // Source 2: Wikipedia search
+  try {
+    const wikiSearch = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json&origin=*`
+    )
+    if (wikiSearch.ok) {
+      const wData = await wikiSearch.json()
+      const hits = wData?.query?.search ?? []
+      if (hits.length) {
+        // Fetch extract for top result
+        const topTitle = encodeURIComponent(hits[0].title)
+        const extractRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${topTitle}&format=json&origin=*`
+        )
+        if (extractRes.ok) {
+          const eData = await extractRes.json()
+          const pages = Object.values(eData?.query?.pages ?? {}) as any[]
+          const extract = pages[0]?.extract?.slice(0, 800)
+          if (extract) results.push(`**Wikipedia — ${hits[0].title}:**\n${extract}\nSource: https://en.wikipedia.org/wiki/${topTitle}`)
+        }
+        // List other results
+        const others = hits.slice(1).map((h: any) => `- ${h.title}: ${h.snippet?.replace(/<[^>]+>/g, '')}`)
+        if (others.length) results.push(`**More Wikipedia results:**\n${others.join('\n')}`)
+      }
+    }
+  } catch { /* continue */ }
+
+  return results.length ? results.join('\n\n') : ''
+}
+
+// ── Thinking mode — uses reasoning model ─────────────────────────────────────
+async function streamWithThinking(
+  messages: Message[],
+  userContent: string,
+  images: { base64: string; mimeType: string }[],
+  onChunk: (text: string, thinking: string) => void
+): Promise<{ text: string; thinking: string }> {
+  const builtMessages = buildMessages(messages, userContent, images)
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Minnal AI',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash-preview:thinking',
+      messages: builtMessages,
+      stream: true,
+      max_tokens: 16000,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message ?? `Request failed (${res.status})`)
+  }
+
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('No response body')
+
+  const decoder = new TextDecoder()
+  let fullText = ''
+  let thinkingText = ''
+  let inThinking = false
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk = decoder.decode(value, { stream: true })
+    for (const line of chunk.split('\n')) {
+      const trimmed = line.replace(/^data: /, '').trim()
+      if (!trimmed || trimmed === '[DONE]') continue
+      try {
+        const json = JSON.parse(trimmed)
+        const delta = json.choices?.[0]?.delta?.content ?? ''
+        if (!delta) continue
+
+        buffer += delta
+
+        // Parse <think>...</think> blocks
+        while (true) {
+          if (!inThinking) {
+            const start = buffer.indexOf('<think>')
+            if (start === -1) {
+              fullText += buffer
+              buffer = ''
+              break
+            }
+            fullText += buffer.slice(0, start)
+            buffer = buffer.slice(start + 7)
+            inThinking = true
+          } else {
+            const end = buffer.indexOf('</think>')
+            if (end === -1) {
+              thinkingText += buffer
+              buffer = ''
+              break
+            }
+            thinkingText += buffer.slice(0, end)
+            buffer = buffer.slice(end + 8)
+            inThinking = false
+          }
+        }
+
+        onChunk(fullText, thinkingText)
+      } catch { /* skip */ }
+    }
+  }
+
+  return { text: fullText.trim(), thinking: thinkingText.trim() }
 }
 
 const IMAGE_GEN_PATTERNS = [
@@ -202,6 +413,7 @@ export function useChat() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
+  const [streamingThinking, setStreamingThinking] = useState('')
   const [loaded, setLoaded] = useState(false)
 
   // Track previous userId to detect login/logout transitions
@@ -299,7 +511,7 @@ export function useChat() {
   }, [userId])
 
   const sendMessage = useCallback(
-    async (content: string, images: { base64: string; mimeType: string }[] = [], mode: 'default' | 'image' | 'canvas' | 'deep-search' = 'default') => {
+    async (content: string, images: { base64: string; mimeType: string }[] = [], mode: 'default' | 'image' | 'canvas' | 'deep-search' | 'web-search' | 'thinking' = 'default') => {
       let chatId = activeChatId
       let existingMessages: Message[] = []
 
@@ -337,11 +549,15 @@ export function useChat() {
 
       setIsTyping(true)
       setStreamingContent('')
+      setStreamingThinking('')
 
       try {
         if (mode === 'image' || (isImageGenRequest(content) && images.length === 0)) {
-          const encodedPrompt = encodeURIComponent(content)
-          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
+          // Enhance the prompt for better image quality
+          const enhancedPrompt = `${content}, highly detailed, professional quality, sharp focus, beautiful composition, 4k`
+          const encodedPrompt = encodeURIComponent(enhancedPrompt)
+          const seed = Date.now()
+          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`
 
           const aiMsg: Message = {
             id: String(Date.now() + 1),
@@ -362,13 +578,106 @@ export function useChat() {
           return
         }
 
+        // Thinking mode — uses reasoning model
+        if (mode === 'thinking') {
+          const { text, thinking } = await streamWithThinking(
+            existingMessages, content, images,
+            (t, th) => { setStreamingContent(t); setStreamingThinking(th) }
+          )
+          const aiMsg: Message = {
+            id: String(Date.now() + 1),
+            role: 'assistant',
+            content: text,
+            thinking: thinking || undefined,
+            timestamp: new Date(),
+          }
+          setChats((prev) => {
+            const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+            if (!userId) saveLocalChats(updated)
+            if (userId) {
+              const chat = updated.find((c) => c.id === chatId)
+              if (chat) upsertSupabaseChat(userId, chat)
+            }
+            return updated
+          })
+          return
+        }
+
+        // Web search: fetch real-time context then inject into prompt
+        let webContext = ''
+        if (mode === 'web-search') {
+          setStreamingContent('🔍 Searching DuckDuckGo + Wikipedia…')
+          webContext = await fetchWebSearchContext(content)
+          setStreamingContent('')
+        }
+
         const effectiveContent = mode === 'deep-search'
-          ? `You are performing a deep, thorough research task. Provide a comprehensive, well-structured, detailed response with multiple sections, key insights, examples, and sources where relevant.\n\nResearch topic: ${content}`
+          ? `You are an expert deep research analyst. The user wants a thorough, well-structured research report.
+
+TASK: ${content}
+
+Produce a comprehensive response with ALL of the following sections (use markdown headers):
+## Overview
+A concise summary of the topic.
+
+## Key Facts & Details
+Bullet-pointed facts, data, and specifics.
+
+## In-Depth Analysis
+Detailed explanation covering multiple angles, causes, effects, or components.
+
+## Different Perspectives
+Present 2-3 different viewpoints or approaches if applicable.
+
+## Practical Implications / Use Cases
+Real-world applications or relevance.
+
+## Summary & Conclusion
+Wrap up with key takeaways.
+
+Be thorough, accurate, and cite any well-known sources where relevant. Use clear markdown formatting throughout.`
+
           : mode === 'canvas'
-          ? `You are a web developer. Build exactly what the user asks. Return ONLY a single complete self-contained HTML file with embedded CSS and JS (CDN links allowed). Do not add any explanation outside the HTML. Start with <!DOCTYPE html>.\n\nUser request: ${content}`
+          ? `You are an expert frontend web developer. Build exactly what the user describes.
+
+REQUIREMENTS:
+- Return ONLY a single complete self-contained HTML file
+- Embed ALL CSS in a <style> tag and ALL JS in a <script> tag
+- Use modern, beautiful design with smooth animations
+- Make it fully responsive (mobile-friendly)
+- Use CDN links for any libraries (Tailwind, Chart.js, etc.) if needed
+- NO explanations outside the HTML — start with <!DOCTYPE html>
+- Make it visually impressive and fully functional
+
+User request: ${content}`
+
+          : mode === 'web-search'
+          ? webContext
+            ? `You are a helpful AI with access to real-time web search results.
+
+USER QUERY: "${content}"
+
+SEARCH RESULTS FROM THE WEB:
+${webContext}
+
+INSTRUCTIONS:
+- Answer the user's query using the search results above as your primary source
+- Synthesize information from multiple sources where available
+- Be specific, accurate, and cite sources with links where provided
+- If the search results are incomplete, supplement with your knowledge but clearly indicate what is from search vs your training
+- Format your response clearly with headers if the answer is complex
+- Always mention the sources at the end`
+            : `The user searched for: "${content}"\n\nWeb search returned no results. Answer based on your training knowledge and clearly note that live search was unavailable.`
+
           : content
 
-        const fullText = await streamWithFallback(existingMessages, effectiveContent, images, setStreamingContent)
+        const fullText = await streamWithFallback(
+          existingMessages,
+          effectiveContent,
+          images,
+          setStreamingContent,
+          mode === 'deep-search' || mode === 'canvas' ? 8192 : 4096
+        )
 
         const htmlMatch = fullText.match(/<!DOCTYPE html[\s\S]*<\/html>/i)
         const canvasHtml = mode === 'canvas' && htmlMatch ? htmlMatch[0] : undefined
@@ -409,6 +718,7 @@ export function useChat() {
       } finally {
         setIsTyping(false)
         setStreamingContent('')
+        setStreamingThinking('')
       }
     },
     [activeChatId, chats, userId]
@@ -466,6 +776,57 @@ export function useChat() {
     }
   }, [activeChatId, chats, userId])
 
+  // Edit a user message: truncate history to that point and resend
+  const editMessage = useCallback(async (messageIndex: number, newContent: string) => {
+    if (!activeChatId) return
+    const chat = chats.find((c) => c.id === activeChatId)
+    if (!chat) return
+
+    // Keep messages up to (not including) the edited message
+    const historyBefore = chat.messages.slice(0, messageIndex)
+    const originalMsg = chat.messages[messageIndex]
+    const updatedUserMsg: Message = { ...originalMsg, content: newContent, id: String(Date.now()) }
+    const truncated = [...historyBefore, updatedUserMsg]
+
+    setChats((prev) => {
+      const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: truncated } : c)
+      if (!userId) saveLocalChats(updated)
+      return updated
+    })
+
+    setIsTyping(true)
+    setStreamingContent('')
+
+    try {
+      const fullText = await streamWithFallback(historyBefore, newContent, originalMsg.images ?? [], setStreamingContent)
+      const aiMsg: Message = { id: String(Date.now() + 1), role: 'assistant', content: fullText, timestamp: new Date() }
+      setChats((prev) => {
+        const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+        if (!userId) saveLocalChats(updated)
+        if (userId) {
+          const updatedChat = updated.find((c) => c.id === activeChatId)
+          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
+        }
+        return updated
+      })
+    } catch (err) {
+      const errorMsg: Message = {
+        id: String(Date.now() + 1),
+        role: 'assistant',
+        content: `Error: ${err instanceof Error ? err.message : 'Failed to get response.'}`,
+        timestamp: new Date(),
+      }
+      setChats((prev) => {
+        const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
+        if (!userId) saveLocalChats(updated)
+        return updated
+      })
+    } finally {
+      setIsTyping(false)
+      setStreamingContent('')
+    }
+  }, [activeChatId, chats, userId])
+
   const clearAllChats = useCallback(() => {
     setChats([])
     setActiveChatId(null)
@@ -478,8 +839,8 @@ export function useChat() {
   }, [userId])
 
   return {
-    chats, activeChat, activeChatId, isTyping, streamingContent, loaded,
+    chats, activeChat, activeChatId, isTyping, streamingContent, streamingThinking, loaded,
     setActiveChatId, createChat, deleteChat, renameChat,
-    sendMessage, regenerate, clearAllChats,
+    sendMessage, regenerate, editMessage, clearAllChats,
   }
 }
