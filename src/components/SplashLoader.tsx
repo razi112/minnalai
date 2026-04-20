@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import Loader from './Loader'
 
 export default function SplashLoader({ children }: { children: React.ReactNode }) {
-  const [visible, setVisible] = useState(true)
+  const isFirstVisit = !sessionStorage.getItem('splashShown')
+  const [visible, setVisible] = useState(isFirstVisit)
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
+    if (!isFirstVisit) return
+    sessionStorage.setItem('splashShown', '1')
     const fadeTimer = setTimeout(() => setFading(true), 1800)
     const hideTimer = setTimeout(() => setVisible(false), 2300)
     return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer) }
