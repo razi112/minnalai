@@ -385,10 +385,29 @@ export default function About() {
                     <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Hafiz Muhammed Razi</span> — a 10th grade
                     student pursuing his studies while maintaining Hifz Doura and Islamic Studies.
                   </p>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                     The institution is a prime example of higher studies for Huffaz — those who have
                     completed the memorisation of the Holy Quran.
                   </p>
+                  {/* Hikma Class Union badge */}
+                  <div
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold"
+                    style={{
+                      background: 'var(--accent-subtle)',
+                      border: '1px solid var(--accent-border)',
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', boxShadow: '0 0 8px var(--accent)' }} />
+                    <span style={{
+                      background: 'linear-gradient(90deg, var(--accent), #d4a017)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      letterSpacing: '0.06em',
+                    }}>
+                      HIKMA CLASS UNION
+                    </span>
+                  </div>
                 </div>
               </div>
             </RevealBlock>
@@ -427,18 +446,30 @@ export default function About() {
           </section>
 
           {/* Footer */}
-          <footer className="text-center pb-10 text-xs fade-in" style={{ color: 'var(--text-muted)', animationDelay: '0.5s' }}>
-            © {new Date().getFullYear()}{' '}
-            <span style={{
-              fontFamily: "'Georgia', serif",
-              fontStyle: 'italic',
-              fontWeight: 700,
-              fontSize: '13px',
-              background: 'linear-gradient(135deg, #4ade80, #d4a017, #16a34a)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>AI Islam</span>. All rights reserved.
+          <footer className="text-center pb-10 text-xs fade-in flex flex-col items-center gap-1.5" style={{ color: 'var(--text-muted)', animationDelay: '0.5s' }}>
+            <span>
+              © {new Date().getFullYear()}{' '}
+              <span style={{
+                fontFamily: "'Georgia', serif",
+                fontStyle: 'italic',
+                fontWeight: 700,
+                fontSize: '13px',
+                background: 'linear-gradient(135deg, #4ade80, #d4a017, #16a34a)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>AI Islam</span>. All rights reserved.
+            </span>
+            <span style={{ letterSpacing: '0.08em' }}>
+              Created by{' '}
+              <span style={{
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, var(--accent), #d4a017)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>HIKMA CLASS UNION</span>
+            </span>
           </footer>
 
         </div>

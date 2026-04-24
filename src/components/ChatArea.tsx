@@ -12,12 +12,13 @@ interface Props {
   streamingContent: string
   streamingThinking: string
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
+  onStop: () => void
   onRegenerate: () => void
   onEditMessage?: (messageIndex: number, newContent: string) => void
 }
 
 
-export default function ChatArea({ chat, isTyping, streamingContent, streamingThinking, onSend, onRegenerate, onEditMessage }: Props) {
+export default function ChatArea({ chat, isTyping, streamingContent, streamingThinking, onSend, onStop, onRegenerate, onEditMessage }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
@@ -73,7 +74,7 @@ export default function ChatArea({ chat, isTyping, streamingContent, streamingTh
           </div>
         )}
       </div>
-      <InputBox onSend={onSend} disabled={isTyping} />
+      <InputBox onSend={onSend} onStop={onStop} disabled={isTyping} />
     </div>
   )
 }

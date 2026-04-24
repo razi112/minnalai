@@ -10,8 +10,9 @@ create table if not exists public.chats (
   updated_at  timestamptz not null default now()
 );
 
--- Index for fast per-user queries
+-- Index for fast per-user queries (sorted by most recently updated)
 create index if not exists chats_user_id_idx on public.chats(user_id);
+create index if not exists chats_user_updated_idx on public.chats(user_id, updated_at desc);
 
 -- Enable Row Level Security
 alter table public.chats enable row level security;

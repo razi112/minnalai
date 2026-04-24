@@ -274,7 +274,7 @@ export default function Home() {
           <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--border), transparent)', margin: '0 24px' }} />
 
           {/* Bottom bar */}
-          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '18px 24px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '18px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
               © {new Date().getFullYear()}{' '}
               <span style={{
@@ -288,6 +288,16 @@ export default function Home() {
                 backgroundClip: 'text',
                 letterSpacing: '0.04em',
               }}>AI Islam</span>. All Rights Reserved.
+            </p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, letterSpacing: '0.08em' }}>
+              Created by{' '}
+              <span style={{
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, var(--accent), #d4a017)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>HIKMA CLASS UNION</span>
             </p>
           </div>
         </footer>

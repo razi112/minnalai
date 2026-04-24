@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
-import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain } from 'lucide-react'
+import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain, Square } from 'lucide-react'
 
 interface ImageAttachment {
   base64: string
@@ -11,6 +11,7 @@ export type ChatMode = 'default' | 'image' | 'canvas' | 'deep-search' | 'web-sea
 
 interface Props {
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
+  onStop?: () => void
   disabled?: boolean
 }
 
@@ -35,7 +36,7 @@ const TOOL_ICONS: Record<ChatMode, React.ReactNode> = {
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 const hasSpeech = !!SpeechRecognition
 
-export default function InputBox({ onSend, disabled }: Props) {
+export default function InputBox({ onSend, onStop, disabled }: Props) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<ImageAttachment[]>([])
   const [activeMode, setActiveMode] = useState<ChatMode>('default')
@@ -197,8 +198,19 @@ export default function InputBox({ onSend, disabled }: Props) {
               style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)', WebkitAppearance: 'none' }}
             />
 
-            {/* Send / Voice */}
-            {canSend ? (
+            {/* Stop / Send / Voice */}
+            {disabled ? (
+              <button
+                onClick={onStop}
+                title="Stop generating"
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5"
+                style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                <Square size={13} fill="currentColor" />
+              </button>
+            ) : canSend ? (
               <button
                 onClick={handleSend}
                 title="Send message"
@@ -210,9 +222,8 @@ export default function InputBox({ onSend, disabled }: Props) {
             ) : hasSpeech ? (
               <button
                 onClick={toggleVoice}
-                disabled={disabled}
                 title={isListening ? 'Stop' : 'Voice input'}
-                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5 disabled:opacity-30"
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 mb-0.5"
                 style={{
                   background: isListening ? 'var(--accent)' : 'var(--bg-hover)',
                   color: isListening ? '#fff' : 'var(--text-muted)',

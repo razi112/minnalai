@@ -132,7 +132,8 @@ async function streamWithFallback(
   userContent: string,
   images: { base64: string; mimeType: string }[],
   onChunk: (text: string) => void,
-  maxTokens = 4096
+  maxTokens = 4096,
+  signal?: AbortSignal
 ): Promise<string> {
   const builtMessages = buildMessages(messages, userContent, images)
 
@@ -150,6 +151,7 @@ async function streamWithFallback(
           stream: true,
           max_tokens: maxTokens,
         }),
+        signal,
       })
 
       if (!res.ok) {
@@ -184,7 +186,8 @@ async function streamWithFallback(
       }
 
       return fullText
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err
       if (MODEL_CHAIN.indexOf(model) < MODEL_CHAIN.length - 1) continue
       throw err
     }
@@ -247,7 +250,8 @@ async function streamWithThinking(
   messages: Message[],
   userContent: string,
   images: { base64: string; mimeType: string }[],
-  onChunk: (text: string, thinking: string) => void
+  onChunk: (text: string, thinking: string) => void,
+  signal?: AbortSignal
 ): Promise<{ text: string; thinking: string }> {
   const builtMessages = buildMessages(messages, userContent, images)
 
@@ -263,6 +267,7 @@ async function streamWithThinking(
       stream: true,
       max_tokens: 16000,
     }),
+    signal,
   })
 
   if (!res.ok) {
@@ -364,42 +369,66 @@ function saveLocalChats(chats: Chat[]) {
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 async function loadSupabaseChats(userId: string): Promise<Chat[]> {
-  const { data, error } = await supabase
-    .from('chats')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
 
-  if (error || !data) return []
+    if (error) { console.error('[useChat] loadSupabaseChats error:', error.message); return [] }
+    if (!data) return []
 
-  return data.map((row: any) => ({
-    id: row.id,
-    title: row.title,
-    createdAt: new Date(row.created_at),
-    messages: (row.messages as any[]).map((m) => ({
-      ...m,
-      timestamp: new Date(m.timestamp),
-    })),
-  }))
+    return data.map((row: any) => ({
+      id: row.id,
+      title: row.title ?? 'New Chat',
+      createdAt: new Date(row.created_at),
+      messages: Array.isArray(row.messages)
+        ? row.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+        : [],
+    }))
+  } catch (e) {
+    console.error('[useChat] loadSupabaseChats exception:', e)
+    return []
+  }
 }
 
-async function upsertSupabaseChat(userId: string, chat: Chat) {
-  await supabase.from('chats').upsert({
-    id: chat.id,
-    user_id: userId,
-    title: chat.title,
-    messages: chat.messages,
-    created_at: chat.createdAt.toISOString(),
-    updated_at: new Date().toISOString(),
-  })
+async function upsertSupabaseChat(userId: string, chat: Chat): Promise<void> {
+  if (!userId || !chat.id) return
+  try {
+    const { error } = await supabase.from('chats').upsert(
+      {
+        id: chat.id,
+        user_id: userId,
+        title: chat.title,
+        messages: chat.messages,
+        created_at: chat.createdAt.toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    )
+    if (error) console.error('[useChat] upsertSupabaseChat error:', error.message)
+  } catch (e) {
+    console.error('[useChat] upsertSupabaseChat exception:', e)
+  }
 }
 
-async function deleteSupabaseChat(chatId: string) {
-  await supabase.from('chats').delete().eq('id', chatId)
+async function deleteSupabaseChat(chatId: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('chats').delete().eq('id', chatId)
+    if (error) console.error('[useChat] deleteSupabaseChat error:', error.message)
+  } catch (e) {
+    console.error('[useChat] deleteSupabaseChat exception:', e)
+  }
 }
 
-async function deleteAllSupabaseChats(userId: string) {
-  await supabase.from('chats').delete().eq('user_id', userId)
+async function deleteAllSupabaseChats(userId: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('chats').delete().eq('user_id', userId)
+    if (error) console.error('[useChat] deleteAllSupabaseChats error:', error.message)
+  } catch (e) {
+    console.error('[useChat] deleteAllSupabaseChats exception:', e)
+  }
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -414,27 +443,39 @@ export function useChat() {
   const [streamingThinking, setStreamingThinking] = useState('')
   const [loaded, setLoaded] = useState(false)
 
-  // Track previous userId to detect login/logout transitions
+  // AbortController for stopping generation mid-stream
+  const abortControllerRef = useRef<AbortController | null>(null)
+  // Keep a ref to streaming state so AbortError handler reads current values
+  const streamingContentRef = useRef('')
+  const streamingThinkingRef = useRef('')
+
+  // Keep refs in sync
+  useEffect(() => { streamingContentRef.current = streamingContent }, [streamingContent])
+  useEffect(() => { streamingThinkingRef.current = streamingThinking }, [streamingThinking])
+
+  // Single consolidated load — runs whenever userId changes (including on mount)
   const prevUserIdRef = useRef<string | null | undefined>(undefined)
 
-  // Load chats whenever auth state changes
   useEffect(() => {
     const prev = prevUserIdRef.current
     prevUserIdRef.current = userId
 
-    // Skip the very first render before auth resolves (undefined → null/string)
-    if (prev === undefined) return
+    // On the very first run (undefined → anything) always load
+    // On subsequent runs only reload when userId actually changed
+    if (prev !== undefined && prev === userId) return
+
+    let cancelled = false
 
     async function load() {
       setLoaded(false)
       if (userId) {
-        // Logged in — load from Supabase
         const cloudChats = await loadSupabaseChats(userId)
+        if (cancelled) return
         setChats(cloudChats)
         setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
       } else {
-        // Guest — load from localStorage
         const local = loadLocalChats()
+        if (cancelled) return
         setChats(local)
         setActiveChatId(localStorage.getItem(ACTIVE_KEY))
       }
@@ -442,26 +483,8 @@ export function useChat() {
     }
 
     load()
+    return () => { cancelled = true }
   }, [userId])
-
-  // Initial load on mount
-  useEffect(() => {
-    async function initialLoad() {
-      if (userId) {
-        const cloudChats = await loadSupabaseChats(userId)
-        setChats(cloudChats)
-        setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
-      } else {
-        const local = loadLocalChats()
-        setChats(local)
-        setActiveChatId(localStorage.getItem(ACTIVE_KEY))
-      }
-      prevUserIdRef.current = userId
-      setLoaded(true)
-    }
-    initialLoad()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // Persist active chat id for guests
   useEffect(() => {
@@ -500,16 +523,25 @@ export function useChat() {
     setChats((prev) => {
       const updated = prev.map((c) => (c.id === id ? { ...c, title } : c))
       if (!userId) saveLocalChats(updated)
-      if (userId) {
-        const chat = updated.find((c) => c.id === id)
-        if (chat) upsertSupabaseChat(userId, chat)
-      }
       return updated
     })
+    // Upsert outside setState to avoid async side-effects inside updater
+    if (userId) {
+      setChats((prev) => {
+        const chat = prev.find((c) => c.id === id)
+        if (chat) upsertSupabaseChat(userId, { ...chat, title })
+        return prev
+      })
+    }
   }, [userId])
 
   const sendMessage = useCallback(
     async (content: string, images: { base64: string; mimeType: string }[] = [], mode: 'default' | 'image' | 'canvas' | 'deep-search' | 'web-search' | 'thinking' = 'default') => {
+      // Create a fresh AbortController for this generation
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+      const signal = controller.signal
+
       let chatId = activeChatId
       let existingMessages: Message[] = []
 
@@ -535,6 +567,8 @@ export function useChat() {
         timestamp: new Date(),
       }
 
+      // Capture updated chat state after adding user message
+      let chatWithUserMsg: Chat | undefined
       setChats((prev) => {
         const updated = prev.map((c) =>
           c.id === chatId
@@ -542,8 +576,11 @@ export function useChat() {
             : c
         )
         if (!userId) saveLocalChats(updated)
+        chatWithUserMsg = updated.find((c) => c.id === chatId)
         return updated
       })
+      // Persist user message immediately
+      if (userId && chatWithUserMsg) upsertSupabaseChat(userId, chatWithUserMsg)
 
       setIsTyping(true)
       setStreamingContent('')
@@ -551,7 +588,6 @@ export function useChat() {
 
       try {
         if (mode === 'image' || (isImageGenRequest(content) && images.length === 0)) {
-          // Enhance the prompt for better image quality
           const enhancedPrompt = `${content}, highly detailed, professional quality, sharp focus, beautiful composition, 4k`
           const encodedPrompt = encodeURIComponent(enhancedPrompt)
           const seed = Date.now()
@@ -564,23 +600,23 @@ export function useChat() {
             generatedImages: [{ base64: imageUrl, mimeType: 'url' }],
             timestamp: new Date(),
           }
+          let finalChat: Chat | undefined
           setChats((prev) => {
             const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
             if (!userId) saveLocalChats(updated)
-            if (userId) {
-              const chat = updated.find((c) => c.id === chatId)
-              if (chat) upsertSupabaseChat(userId, chat)
-            }
+            finalChat = updated.find((c) => c.id === chatId)
             return updated
           })
+          if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
           return
         }
 
-        // Thinking mode — uses reasoning model
+        // Thinking mode
         if (mode === 'thinking') {
           const { text, thinking } = await streamWithThinking(
             existingMessages, content, images,
-            (t, th) => { setStreamingContent(t); setStreamingThinking(th) }
+            (t, th) => { setStreamingContent(t); setStreamingThinking(th) },
+            signal
           )
           const aiMsg: Message = {
             id: String(Date.now() + 1),
@@ -589,19 +625,18 @@ export function useChat() {
             thinking: thinking || undefined,
             timestamp: new Date(),
           }
+          let finalChat: Chat | undefined
           setChats((prev) => {
             const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
             if (!userId) saveLocalChats(updated)
-            if (userId) {
-              const chat = updated.find((c) => c.id === chatId)
-              if (chat) upsertSupabaseChat(userId, chat)
-            }
+            finalChat = updated.find((c) => c.id === chatId)
             return updated
           })
+          if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
           return
         }
 
-        // Web search: fetch real-time context then inject into prompt
+        // Web search
         let webContext = ''
         if (mode === 'web-search') {
           setStreamingContent('🔍 Searching DuckDuckGo + Wikipedia…')
@@ -674,7 +709,8 @@ INSTRUCTIONS:
           effectiveContent,
           images,
           setStreamingContent,
-          mode === 'deep-search' || mode === 'canvas' ? 8192 : 4096
+          mode === 'deep-search' || mode === 'canvas' ? 8192 : 4096,
+          signal
         )
 
         const htmlMatch = fullText.match(/<!DOCTYPE html[\s\S]*<\/html>/i)
@@ -688,32 +724,55 @@ INSTRUCTIONS:
           timestamp: new Date(),
         }
 
+        let finalChat: Chat | undefined
         setChats((prev) => {
           const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
           if (!userId) saveLocalChats(updated)
-          if (userId) {
-            const chat = updated.find((c) => c.id === chatId)
-            if (chat) upsertSupabaseChat(userId, chat)
-          }
+          finalChat = updated.find((c) => c.id === chatId)
           return updated
         })
+        if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+
       } catch (err) {
+        if ((err as any)?.name === 'AbortError') {
+          // Use refs to get current streaming values (avoids stale closure)
+          const partialContent = streamingContentRef.current
+          const partialThinking = streamingThinkingRef.current
+          if (partialContent || partialThinking) {
+            const aiMsg: Message = {
+              id: String(Date.now() + 1),
+              role: 'assistant',
+              content: partialContent,
+              thinking: partialThinking || undefined,
+              timestamp: new Date(),
+            }
+            let finalChat: Chat | undefined
+            setChats((prev) => {
+              const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
+              if (!userId) saveLocalChats(updated)
+              finalChat = updated.find((c) => c.id === chatId)
+              return updated
+            })
+            if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+          }
+          return
+        }
         const errorMsg: Message = {
           id: String(Date.now() + 1),
           role: 'assistant',
           content: `Error: ${err instanceof Error ? err.message : 'Failed to get response. Check your API key.'}`,
           timestamp: new Date(),
         }
+        let finalChat: Chat | undefined
         setChats((prev) => {
           const updated = prev.map((c) => c.id === chatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
           if (!userId) saveLocalChats(updated)
-          if (userId) {
-            const chat = updated.find((c) => c.id === chatId)
-            if (chat) upsertSupabaseChat(userId, chat)
-          }
+          finalChat = updated.find((c) => c.id === chatId)
           return updated
         })
+        if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
       } finally {
+        abortControllerRef.current = null
         setIsTyping(false)
         setStreamingContent('')
         setStreamingThinking('')
@@ -739,36 +798,39 @@ INSTRUCTIONS:
     setIsTyping(true)
     setStreamingContent('')
 
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       const history = messagesWithoutLast.slice(0, -1)
-      const fullText = await streamWithFallback(history, lastUserMsg.content, lastUserMsg.images ?? [], setStreamingContent)
+      const fullText = await streamWithFallback(history, lastUserMsg.content, lastUserMsg.images ?? [], setStreamingContent, 4096, controller.signal)
       const aiMsg: Message = { id: String(Date.now()), role: 'assistant', content: fullText, timestamp: new Date() }
+      let finalChat: Chat | undefined
       setChats((prev) => {
         const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
         if (!userId) saveLocalChats(updated)
-        if (userId) {
-          const updatedChat = updated.find((c) => c.id === activeChatId)
-          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
-        }
+        finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
+      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
     } catch (err) {
+      if ((err as any)?.name === 'AbortError') return
       const errorMsg: Message = {
         id: String(Date.now()),
         role: 'assistant',
         content: `Error: ${err instanceof Error ? err.message : 'Regeneration failed.'}`,
         timestamp: new Date(),
       }
+      let finalChat: Chat | undefined
       setChats((prev) => {
         const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
         if (!userId) saveLocalChats(updated)
-        if (userId) {
-          const updatedChat = updated.find((c) => c.id === activeChatId)
-          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
-        }
+        finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
+      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
     } finally {
+      abortControllerRef.current = null
       setIsTyping(false)
       setStreamingContent('')
     }
@@ -780,7 +842,6 @@ INSTRUCTIONS:
     const chat = chats.find((c) => c.id === activeChatId)
     if (!chat) return
 
-    // Keep messages up to (not including) the edited message
     const historyBefore = chat.messages.slice(0, messageIndex)
     const originalMsg = chat.messages[messageIndex]
     const updatedUserMsg: Message = { ...originalMsg, content: newContent, id: String(Date.now()) }
@@ -792,38 +853,48 @@ INSTRUCTIONS:
       return updated
     })
 
+    const controller = new AbortController()
+    abortControllerRef.current = controller
     setIsTyping(true)
     setStreamingContent('')
 
     try {
-      const fullText = await streamWithFallback(historyBefore, newContent, originalMsg.images ?? [], setStreamingContent)
+      const fullText = await streamWithFallback(historyBefore, newContent, originalMsg.images ?? [], setStreamingContent, 4096, controller.signal)
       const aiMsg: Message = { id: String(Date.now() + 1), role: 'assistant', content: fullText, timestamp: new Date() }
+      let finalChat: Chat | undefined
       setChats((prev) => {
         const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, aiMsg] } : c)
         if (!userId) saveLocalChats(updated)
-        if (userId) {
-          const updatedChat = updated.find((c) => c.id === activeChatId)
-          if (updatedChat) upsertSupabaseChat(userId, updatedChat)
-        }
+        finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
+      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
     } catch (err) {
+      if ((err as any)?.name === 'AbortError') return
       const errorMsg: Message = {
         id: String(Date.now() + 1),
         role: 'assistant',
         content: `Error: ${err instanceof Error ? err.message : 'Failed to get response.'}`,
         timestamp: new Date(),
       }
+      let finalChat: Chat | undefined
       setChats((prev) => {
         const updated = prev.map((c) => c.id === activeChatId ? { ...c, messages: [...c.messages, errorMsg] } : c)
         if (!userId) saveLocalChats(updated)
+        finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
+      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
     } finally {
+      abortControllerRef.current = null
       setIsTyping(false)
       setStreamingContent('')
     }
   }, [activeChatId, chats, userId])
+
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort()
+  }, [])
 
   const clearAllChats = useCallback(() => {
     setChats([])
@@ -839,6 +910,6 @@ INSTRUCTIONS:
   return {
     chats, activeChat, activeChatId, isTyping, streamingContent, streamingThinking, loaded,
     setActiveChatId, createChat, deleteChat, renameChat,
-    sendMessage, regenerate, editMessage, clearAllChats,
+    sendMessage, regenerate, editMessage, clearAllChats, stopGeneration,
   }
 }

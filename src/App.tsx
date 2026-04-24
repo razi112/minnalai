@@ -17,7 +17,7 @@ export default function App() {
   const {
     chats, activeChat, activeChatId, isTyping, streamingContent, streamingThinking,
     setActiveChatId, createChat, deleteChat, renameChat,
-    sendMessage, regenerate, editMessage, clearAllChats,
+    sendMessage, regenerate, editMessage, clearAllChats, stopGeneration,
   } = useChat()
 
   // 🔥 Capture install event
@@ -166,6 +166,7 @@ export default function App() {
           streamingContent={streamingContent}
           streamingThinking={streamingThinking}
           onSend={sendMessage}
+          onStop={stopGeneration}
           onRegenerate={regenerate}
           onEditMessage={editMessage}
         />
