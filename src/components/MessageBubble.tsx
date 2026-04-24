@@ -65,17 +65,72 @@ function StreamingText({ content }: { content: string }) {
 function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming?: boolean }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="mb-3" style={{ borderRadius: '10px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+    <div className="mb-3" style={{ borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes thinkSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes thinkPulseRing {
+          0%   { transform: scale(0.85); opacity: 0.6; }
+          50%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(0.85); opacity: 0.6; }
+        }
+        @keyframes thinkShimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+      `}</style>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors"
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
         style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', fontSize: '12px' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-secondary)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
       >
-        <Brain size={13} style={{ color: 'var(--accent)', flexShrink: 0, animation: isStreaming && !open ? 'spin 2s linear infinite' : 'none' }} />
-        <span style={{ flex: 1, fontWeight: 500 }}>
-          {isStreaming ? 'Thinking…' : 'Thought process'}
+        {/* Animated icon */}
+        <span style={{ position: 'relative', width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isStreaming && !open ? (
+            <>
+              {/* Spinning ring */}
+              <span style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                border: '2px solid transparent',
+                borderTopColor: 'var(--accent)',
+                borderRightColor: 'var(--accent)',
+                animation: 'thinkSpin 0.9s linear infinite',
+              }} />
+              {/* Pulsing center dot */}
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: 'var(--accent)',
+                animation: 'thinkPulseRing 1.2s ease-in-out infinite',
+              }} />
+            </>
+          ) : (
+            <Brain size={13} style={{ color: 'var(--accent)' }} />
+          )}
         </span>
-        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+
+        {/* Label */}
+        <span style={{ flex: 1, fontWeight: 500 }}>
+          {isStreaming ? (
+            <span style={{
+              background: 'linear-gradient(90deg, var(--text-muted) 25%, var(--accent) 50%, var(--text-muted) 75%)',
+              backgroundSize: '200% auto',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              animation: 'thinkShimmer 2s linear infinite',
+            }}>
+              Thinking…
+            </span>
+          ) : (
+            'Thought process'
+          )}
+        </span>
+
+        <ChevronDown size={13} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }} />
       </button>
       <div style={{
         maxHeight: open ? '400px' : '0',
