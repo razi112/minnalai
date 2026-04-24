@@ -376,7 +376,10 @@ async function loadSupabaseChats(userId: string): Promise<Chat[]> {
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
 
-    if (error) { console.error('[useChat] loadSupabaseChats error:', error.message); return [] }
+    if (error) {
+      console.error('[useChat] loadSupabaseChats error:', error.message, error.code, error.details)
+      return []
+    }
     if (!data) return []
 
     return data.map((row: any) => ({
@@ -407,7 +410,7 @@ async function upsertSupabaseChat(userId: string, chat: Chat): Promise<void> {
       },
       { onConflict: 'id' }
     )
-    if (error) console.error('[useChat] upsertSupabaseChat error:', error.message)
+    if (error) console.error('[useChat] upsertSupabaseChat error:', error.message, error.code, error.details)
   } catch (e) {
     console.error('[useChat] upsertSupabaseChat exception:', e)
   }
@@ -433,7 +436,7 @@ async function deleteAllSupabaseChats(userId: string): Promise<void> {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useChat() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const userId = user?.id ?? null
 
   const [chats, setChats] = useState<Chat[]>([])
@@ -453,15 +456,18 @@ export function useChat() {
   useEffect(() => { streamingContentRef.current = streamingContent }, [streamingContent])
   useEffect(() => { streamingThinkingRef.current = streamingThinking }, [streamingThinking])
 
-  // Single consolidated load — runs whenever userId changes (including on mount)
+  // Load chats only after auth has fully resolved, then reload whenever userId changes
   const prevUserIdRef = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
+    // Wait for auth to finish before doing anything — prevents loading localStorage
+    // as a guest when the user is actually logged in (auth just hasn't resolved yet)
+    if (authLoading) return
+
     const prev = prevUserIdRef.current
     prevUserIdRef.current = userId
 
-    // On the very first run (undefined → anything) always load
-    // On subsequent runs only reload when userId actually changed
+    // Skip if userId hasn't changed since last load
     if (prev !== undefined && prev === userId) return
 
     let cancelled = false
@@ -469,11 +475,13 @@ export function useChat() {
     async function load() {
       setLoaded(false)
       if (userId) {
+        // Logged-in: always load from Supabase
         const cloudChats = await loadSupabaseChats(userId)
         if (cancelled) return
         setChats(cloudChats)
         setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
       } else {
+        // Guest: load from localStorage
         const local = loadLocalChats()
         if (cancelled) return
         setChats(local)
@@ -484,7 +492,7 @@ export function useChat() {
 
     load()
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, authLoading])
 
   // Persist active chat id for guests
   useEffect(() => {

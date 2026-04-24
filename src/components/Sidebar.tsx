@@ -56,15 +56,12 @@ export default function Sidebar({
         {/* Top bar: logo centered + hamburger right */}
         <div className="relative flex items-center justify-center mb-4 pt-1">
           {/* Logo */}
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="var(--accent)"/>
-              <circle cx="17.5" cy="5.5" r="1.5" fill="var(--accent)"/>
-            </svg>
-          </div>
+          <img
+            src="/favicon.ico"
+            alt="AI Islam logo"
+            className="w-10 h-10 rounded-full"
+            style={{ objectFit: 'cover' }}
+          />
           {/* Hamburger toggle */}
           <button
             onClick={onToggle}

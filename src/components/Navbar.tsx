@@ -45,16 +45,12 @@ export default function Navbar() {
       >
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--accent)' }}
-          >
-            {/* Crescent moon icon */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white"/>
-              <circle cx="17" cy="5" r="1.2" fill="white"/>
-            </svg>
-          </div>
+          <img
+            src="/favicon.ico"
+            alt="AI Islam logo"
+            className="w-8 h-8 rounded-full"
+            style={{ objectFit: 'cover' }}
+          />
           <span className="hidden sm:block text-sm font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>AI Islam</span>
         </Link>
 
