@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
-import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain, Paperclip, Plus, MoreHorizontal, ChevronRight } from 'lucide-react'
+import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain } from 'lucide-react'
 
 interface ImageAttachment {
   base64: string
@@ -13,43 +13,6 @@ interface Props {
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
   disabled?: boolean
 }
-
-const PLUS_MENU = [
-  {
-    id: 'upload',
-    label: 'Upload photos & files',
-    icon: <Paperclip size={18} />,
-    dividerAfter: true,
-  },
-  {
-    id: 'image',
-    label: 'Create image',
-    icon: <Image size={18} />,
-    mode: 'image' as ChatMode,
-  },
-  {
-    id: 'thinking',
-    label: 'Thinking',
-    icon: <Brain size={18} />,
-    mode: 'thinking' as ChatMode,
-  },
-  {
-    id: 'deep-search',
-    label: 'Deep research',
-    icon: <Globe size={18} />,
-    mode: 'deep-search' as ChatMode,
-  },
-  {
-    id: 'more',
-    label: 'More',
-    icon: <MoreHorizontal size={18} />,
-    hasArrow: true,
-    subItems: [
-      { id: 'canvas',     label: 'Canvas',     icon: <PenLine size={16} />, mode: 'canvas' as ChatMode },
-      { id: 'web-search', label: 'Web Search', icon: <Search size={16} />, mode: 'web-search' as ChatMode },
-    ],
-  },
-]
 
 const TOOL_LABELS: Record<ChatMode, string> = {
   default: '',
@@ -76,13 +39,9 @@ export default function InputBox({ onSend, disabled }: Props) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<ImageAttachment[]>([])
   const [activeMode, setActiveMode] = useState<ChatMode>('default')
-  const [plusOpen, setPlusOpen] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isListening, setIsListening] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const plusMenuRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => () => recognitionRef.current?.abort(), [])
@@ -93,17 +52,6 @@ export default function InputBox({ onSend, disabled }: Props) {
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, window.innerWidth < 640 ? 120 : 200) + 'px'
   }, [value])
-
-  useEffect(() => {
-    if (!plusOpen) { setMoreOpen(false); return }
-    const handler = (e: MouseEvent) => {
-      if (plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) {
-        setPlusOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [plusOpen])
 
   const toggleVoice = useCallback(() => {
     if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return }
@@ -163,24 +111,6 @@ export default function InputBox({ onSend, disabled }: Props) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     handleFiles(e.dataTransfer.files)
-  }
-
-  const handlePlusItem = (item: typeof PLUS_MENU[number]) => {
-    if (item.id === 'upload') {
-      fileRef.current?.click()
-      setPlusOpen(false)
-      return
-    }
-    if (item.id === 'more') return // handled by hover
-    if (item.mode) {
-      setActiveMode(prev => prev === item.mode ? 'default' : item.mode!)
-      setPlusOpen(false)
-    }
-  }
-
-  const handleSubItem = (mode: ChatMode) => {
-    setActiveMode(prev => prev === mode ? 'default' : mode)
-    setPlusOpen(false)
   }
 
   const canSend = (value.trim().length > 0 || images.length > 0) && !disabled
@@ -251,126 +181,6 @@ export default function InputBox({ onSend, disabled }: Props) {
 
           {/* Input row */}
           <div className="flex items-end gap-2 px-4 py-3">
-
-            {/* Plus button */}
-            <div className="relative shrink-0 mb-0.5" ref={plusMenuRef}>
-              <button
-                title="More options"
-                onClick={() => setPlusOpen(o => !o)}
-                disabled={disabled}
-                className="w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
-                style={{
-                  background: plusOpen ? 'var(--accent)' : 'transparent',
-                  border: '1.5px solid var(--border)',
-                  color: plusOpen ? '#fff' : 'var(--text-muted)',
-                }}
-                onMouseEnter={e => { if (!plusOpen) e.currentTarget.style.color = 'var(--accent)' }}
-                onMouseLeave={e => { if (!plusOpen) e.currentTarget.style.color = 'var(--text-muted)' }}
-              >
-                <Plus size={16} style={{ transform: plusOpen ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-              </button>
-
-              {plusOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 'calc(100% + 10px)',
-                    left: 0,
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '16px',
-                    padding: '8px',
-                    minWidth: '220px',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
-                    animation: 'plusMenuPop 0.18s cubic-bezier(0.34,1.56,0.64,1)',
-                    zIndex: 100,
-                    overflow: 'visible',
-                  }}
-                >
-                  {PLUS_MENU.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{ position: 'relative' }}
-                      onMouseEnter={() => {
-                        if (item.hasArrow) {
-                          if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current)
-                          setMoreOpen(true)
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (item.hasArrow) {
-                          moreTimeoutRef.current = setTimeout(() => setMoreOpen(false), 120)
-                        }
-                      }}
-                    >
-                      <button
-                        onClick={() => handlePlusItem(item)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-all text-left"
-                        style={{
-                          color: (item.mode && activeMode === item.mode) ? 'var(--accent)' : 'var(--text-primary)',
-                          background: (item.hasArrow && moreOpen) ? 'var(--bg-hover)' : 'transparent',
-                          fontWeight: 500,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-                        onMouseLeave={e => { if (!(item.hasArrow && moreOpen)) e.currentTarget.style.background = 'transparent' }}
-                      >
-                        <span style={{ color: (item.mode && activeMode === item.mode) ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }}>
-                          {item.icon}
-                        </span>
-                        <span className="flex-1">{item.label}</span>
-                        {item.hasArrow && (
-                          <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                        )}
-                      </button>
-
-                      {/* Flyout submenu on hover */}
-                      {item.hasArrow && moreOpen && (
-                        <div
-                          onMouseEnter={() => { if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current) }}
-                          onMouseLeave={() => { moreTimeoutRef.current = setTimeout(() => setMoreOpen(false), 120) }}
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            left: 'calc(100% + 6px)',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '14px',
-                            padding: '6px',
-                            minWidth: '180px',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                            animation: 'plusMenuPop 0.15s cubic-bezier(0.34,1.56,0.64,1)',
-                            zIndex: 101,
-                          }}
-                        >
-                          {item.subItems?.map(sub => (
-                            <button
-                              key={sub.id}
-                              onClick={() => handleSubItem(sub.mode)}
-                              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-all text-left"
-                              style={{
-                                color: activeMode === sub.mode ? 'var(--accent)' : 'var(--text-primary)',
-                                background: 'transparent',
-                                fontWeight: 500,
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                            >
-                              <span style={{ color: activeMode === sub.mode ? 'var(--accent)' : 'var(--text-muted)', flexShrink: 0 }}>{sub.icon}</span>
-                              {sub.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {item.dividerAfter && (
-                        <div style={{ height: '1px', background: 'var(--border)', margin: '6px 4px' }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => handleFiles(e.target.files)} />

@@ -6,10 +6,14 @@ export default function AuthCallback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Supabase automatically picks up the hash tokens on getSession
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log(session)
+    // Exchange the OAuth code/tokens from the URL for a session.
+    // After getSession(), call getUser() to force a fresh fetch from Supabase
+    // so that Google profile data (avatar_url, full_name) is fully synced
+    // into user_metadata before we navigate to the dashboard.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        // Refresh user metadata from the server to get Google avatar_url etc.
+        await supabase.auth.getUser()
         navigate('/dashboard', { replace: true })
       } else {
         navigate('/login', { replace: true })
