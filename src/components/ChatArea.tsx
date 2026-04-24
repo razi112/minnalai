@@ -16,12 +16,6 @@ interface Props {
   onEditMessage?: (messageIndex: number, newContent: string) => void
 }
 
-const SUGGESTIONS = [
-  'Explain how React hooks work',
-  'Write a Python script to sort a list',
-  'What are the best practices for REST APIs?',
-  'Help me debug this TypeScript error',
-]
 
 export default function ChatArea({ chat, isTyping, streamingContent, streamingThinking, onSend, onRegenerate, onEditMessage }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -56,30 +50,6 @@ export default function ChatArea({ chat, isTyping, streamingContent, streamingTh
               <p className="text-base" style={{ color: 'var(--text-muted)' }}>
                 How can I help you today?
               </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-full sm:max-w-xl px-2">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onSend(s, [], 'default')}
-                  className="text-left px-4 py-3 rounded-xl text-sm transition-all duration-150"
-                  style={{
-                    background: 'var(--bg-hover)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-secondary)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.color = 'var(--text-primary)'
-                    e.currentTarget.style.borderColor = 'var(--text-muted)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.color = 'var(--text-secondary)'
-                    e.currentTarget.style.borderColor = 'var(--border)'
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
             </div>
           </div>
         ) : (

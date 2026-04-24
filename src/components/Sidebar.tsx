@@ -60,8 +60,9 @@ export default function Sidebar({
             className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="var(--accent)"/>
+              <circle cx="17.5" cy="5.5" r="1.5" fill="var(--accent)"/>
             </svg>
           </div>
           {/* Hamburger toggle */}

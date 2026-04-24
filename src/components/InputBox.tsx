@@ -429,7 +429,7 @@ export default function InputBox({ onSend, disabled }: Props) {
         </div>
 
         <p className="text-center text-xs mt-2 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
-          Press Enter to send · Shift+Enter for new line · Paste or drag images
+         BY HIKMA CLASS UNION 
         </p>
       </div>
     </div>

@@ -1,11 +1,11 @@
 {
-  "name": "Minnal AI",
-  "short_name": "Minnal AI",
+  "name": "AI Islam",
+  "short_name": "AI Islam",
   "description": "Authentic Islamic guidance powered by AI",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#7c3aed",
+  "background_color": "#0a0f0a",
+  "theme_color": "#16a34a",
   "orientation": "portrait-primary",
   "icons": [
     {

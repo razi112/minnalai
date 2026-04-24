@@ -12,4 +12,12 @@ if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
   )
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    // Use localStorage (default) — avoids the IndexedDB lock contention
+    // that causes "lock was released because another request stole it"
+    storage: window.localStorage,
+    // Prevent multiple tabs / concurrent requests from fighting over the lock
+    lock: async (_name, _acquireTimeout, fn) => fn(),
+  },
+})

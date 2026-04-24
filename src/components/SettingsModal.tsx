@@ -332,7 +332,7 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
                 </Row>
                 <Row label="Accent color" sub="Highlight color used across the UI">
                   <div className="flex items-center gap-2">
-                    {['#7c3aed', '#2563eb', '#059669', '#dc2626', '#d97706', '#db2777', '#ffffff'].map((c) => (
+                    {['#16a34a', '#d4a017', '#2563eb', '#059669', '#dc2626', '#d97706', '#ffffff'].map((c) => (
                       <button
                         key={c}
                         onClick={() => setAccent(c)}

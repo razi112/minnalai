@@ -156,8 +156,9 @@ export default function Login() {
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'var(--accent)', boxShadow: '0 6px 20px var(--accent-subtle)' }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white"/>
+                <circle cx="17.5" cy="5.5" r="1.5" fill="white"/>
               </svg>
             </div>
             <div className="text-center">
@@ -165,7 +166,7 @@ export default function Login() {
                 {mode === 'signin' ? 'Welcome back' : 'Create an account'}
               </h1>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {mode === 'signin' ? 'Sign in to continue your conversations' : 'Start chatting with AI today'}
+                {mode === 'signin' ? 'Sign in to continue your Islamic journey' : 'Start exploring Islamic knowledge today'}
               </p>
             </div>
           </div>

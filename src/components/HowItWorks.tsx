@@ -34,7 +34,7 @@ const steps = [
     icon: <CheckCircle size={30} />,
     color: '#22c97a',
     title: 'Get Accurate Ruling',
-    desc: 'Minnal AI delivers lightning-fast, precise answers you can trust, right to your screen.',
+    desc: 'AI Islam delivers lightning-fast, precise answers you can trust, right to your screen.',
   },
 ]
 
@@ -71,7 +71,7 @@ export default function HowItWorks() {
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
           >
-            Minnal AI 
+            AI Islam
           </span>
         </h2>
       </div>

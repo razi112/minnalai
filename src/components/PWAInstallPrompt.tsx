@@ -90,7 +90,7 @@ export default function PWAInstallPrompt() {
         </div>
 
         <p style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px', textAlign: 'center', letterSpacing: '-0.03em' }}>
-          Install Minnal AI
+          Install AI Islam
         </p>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 32px', textAlign: 'center', lineHeight: 1.7, maxWidth: '280px' }}>
           Get the full app experience — faster load, offline access, and home screen shortcut.

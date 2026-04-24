@@ -9,10 +9,10 @@ import WhySection from '../components/WhySection'
 import { Sparkles, Zap, Shield, MessageSquare } from 'lucide-react'
 
 const features = [
-  { icon: <Zap size={20} />, title: 'Lightning Fast', desc: 'Powered by Gemini 2.5 Flash for near-instant responses.' },
-  { icon: <Shield size={20} />, title: 'Secure & Private', desc: 'Your conversations are encrypted and never shared.' },
+  { icon: <Zap size={20} />, title: 'Lightning Fast', desc: 'Powered by Gemini 2.5 Flash for near-instant Islamic guidance.' },
+  { icon: <Shield size={20} />, title: 'Authentic & Verified', desc: 'Responses grounded in Quran, Hadith, and classical Islamic scholarship.' },
   { icon: <MessageSquare size={20} />, title: 'Multi-turn Chat', desc: 'Context-aware conversations that remember your thread.' },
-  { icon: <Sparkles size={20} />, title: 'Smart Suggestions', desc: 'AI-powered prompts to help you get the most out of every chat.' },
+  { icon: <Sparkles size={20} />, title: 'Multilingual', desc: 'Ask in Arabic, English, Urdu, or any language — get answers in kind.' },
 ]
 
 function ScrollRevealCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -91,10 +91,11 @@ export default function Home() {
             </svg>
           </div>
 
-          {/* center flash/zap — directly above heading */}
+          {/* center crescent — directly above heading */}
           <div style={{ position:'absolute', left:'50%', top:'168px', transform:'translateX(-50%)', width:56, height:56, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent-subtle)', border:'1px solid var(--accent-border)', borderRadius:14, animation:'float-y 3.5s ease-in-out infinite', zIndex:1 }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="var(--accent)"/>
+              <circle cx="17.5" cy="5.5" r="1.5" fill="var(--accent)"/>
             </svg>
           </div>
 
@@ -102,16 +103,16 @@ export default function Home() {
             className="text-3xl sm:text-5xl lg:text-7xl font-bold leading-tight max-w-3xl fade-up fade-up-delay-1 w-full"
             style={{ letterSpacing: '-0.03em' }}
           >
-            Your Intelligent & Authentic
-AI{' '}
-            <span style={{ color: '#7c3aed' }}>Effortlessly</span>
+            Authentic Islamic Guidance,
+{' '}
+            <span style={{ color: 'var(--accent)' }}>Powered by AI</span>
           </h1>
 
           <p
             className="text-lg max-w-xl fade-up fade-up-delay-2"
             style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}
           >
-            A clean, fast AI chat experience. Ask anything, get instant answers, and keep your conversations organized.
+            Ask questions about Islam, Quran, Hadith, Fiqh, and more. Get fast, accurate answers grounded in authentic Islamic knowledge.
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2 fade-up fade-up-delay-3 w-full max-w-sm sm:max-w-none sm:w-auto">
@@ -130,7 +131,7 @@ AI{' '}
               onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)' }}
               onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
             >
-              Start Your Journey
+              Begin Your Journey
             </button>
 
             <button
@@ -223,7 +224,7 @@ AI{' '}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 20px rgba(74,222,128,0.6)', flexShrink: 0 }} />
                 <span style={{ fontSize: 'clamp(24px, 4vw, 48px)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1, fontStyle: 'italic' }}>
-                  Minnal AI
+                  AI Islam
                 </span>
               </div>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.75, maxWidth: '300px', margin: 0 }}>
@@ -281,12 +282,12 @@ AI{' '}
                 fontStyle: 'italic',
                 fontWeight: 700,
                 fontSize: '13px',
-                background: 'linear-gradient(135deg, #a78bfa, #60a5fa, #34d399)',
+                background: 'linear-gradient(135deg, #4ade80, #d4a017, #16a34a)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
                 letterSpacing: '0.04em',
-              }}>Minnal AI</span>. All Rights Reserved.
+              }}>AI Islam</span>. All Rights Reserved.
             </p>
           </div>
         </footer>

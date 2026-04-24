@@ -3,28 +3,28 @@ import { ChevronDown } from 'lucide-react'
 
 const faqs = [
   {
-    q: 'What is Minnal AI ?',
-    a: 'Minnal AI  is an intelligent chat platform powered by Google\'s Gemini 2.5 Flash model. It lets you have natural, multi-turn conversations with an AI that understands context, answers questions, writes code, and much more.',
+    q: 'What is AI Islam?',
+    a: 'AI Islam is an intelligent Islamic guidance platform powered by Google\'s Gemini 2.5 Flash model. It lets you have natural, multi-turn conversations about Quran, Hadith, Fiqh, Islamic history, and more — with fast, accurate, and authentic answers.',
   },
   {
     q: 'How accurate and authentic is the knowledge?',
-    a: 'The AI is trained on a vast corpus of high-quality data. While it strives for accuracy, it can occasionally make mistakes. Always verify critical information — especially for medical, legal, or financial decisions — with authoritative sources.',
+    a: 'The AI is trained on a vast corpus of Islamic texts and high-quality data. While it strives for accuracy grounded in Quran and Sunnah, always verify critical religious rulings with qualified scholars. Use this as a helpful starting point, not a fatwa.',
   },
   {
     q: 'Is my conversation data private?',
     a: 'Yes. Your chats are stored locally in your browser and are never shared with third parties. Authentication is handled securely via Supabase with row-level security, so only you can access your data.',
   },
   {
-    q: 'Who developed Minnal AI ?',
-    a: "Minnal AI was conceived and developed by the Students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi a 10th student at Islamic Da'wa Academy pursuing 10th while maintaining Hifz Doura and Islamic Studies. The institution is a prime example for the higher studies of Huffaz (those who have completed Hifz).",
+    q: 'Who developed AI Islam?',
+    a: "AI Islam was conceived and developed by the Students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi — a 10th student at Islamic Da'wa Academy pursuing 10th while maintaining Hifz Doura and Islamic Studies. The institution is a prime example for the higher studies of Huffaz.",
   },
   {
     q: 'Can I use it in my own language?',
-    a: 'Absolutely. Gemini 2.5 Flash is multilingual. Just type in your preferred language and the AI will understand and respond in kind.',
+    a: 'Absolutely. Gemini 2.5 Flash is multilingual. Type in Arabic, English, Urdu, Malayalam, or any language and the AI will understand and respond in kind.',
   },
   {
-    q: 'How should I use it safely?',
-    a: 'Treat AI responses as a helpful starting point, not a final authority. Avoid sharing sensitive personal information in chats. For important decisions, cross-check with verified human experts.',
+    q: 'What topics can I ask about?',
+    a: 'You can ask about Quran tafsir, Hadith, Fiqh (Islamic jurisprudence), Islamic history, prayer times, halal/haram rulings, duas, Islamic ethics, and much more.',
   },
   {
     q: 'Is there a message limit?',
@@ -126,7 +126,7 @@ export default function FAQ() {
           Frequently Asked Questions
         </h2>
         <p className="text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>
-          Everything you need to know about the AI Usthad platform, the authenticity of the knowledge, and how to use it safely.
+          Everything you need to know about AI Islam, the authenticity of the knowledge, and how to use it safely.
         </p>
       </div>
 

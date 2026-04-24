@@ -5,17 +5,19 @@
 
   :root {
     font-size: 16px;
-    --bg-primary: #0f0f0f;
-    --bg-secondary: #141414;
+    --bg-primary: #0a0f0a;
+    --bg-secondary: #0f1a0f;
     --bg-hover: rgba(255,255,255,0.06);
-    --text-primary: #ececec;
-    --text-secondary: rgba(255,255,255,0.6);
-    --text-muted: rgba(255,255,255,0.3);
-    --border: rgba(255,255,255,0.07);
-    --bubble-user: rgba(255,255,255,0.08);
-    --accent: #7c3aed;
-    --accent-subtle: #7c3aed22;
-    --accent-border: #7c3aed55;
+    --text-primary: #e8f5e8;
+    --text-secondary: rgba(232,245,232,0.6);
+    --text-muted: rgba(232,245,232,0.3);
+    --border: rgba(74,163,74,0.12);
+    --bubble-user: rgba(74,163,74,0.08);
+    --accent: #16a34a;
+    --accent-subtle: #16a34a22;
+    --accent-border: #16a34a55;
+    --gold: #d4a017;
+    --gold-subtle: #d4a01722;
   }
 
   body {
@@ -202,45 +204,63 @@
     transition-duration: 0.1s;
   }
   .glow-card {
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1),
+                box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s ease,
+                background 0.3s ease;
   }
   .glow-card:hover {
-    transform: translateY(-4px) scale(1.015);
-    box-shadow: 0 0 0 1px var(--accent-border), 0 12px 36px rgba(0,0,0,0.28);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 0 0 1px var(--accent-border),
+                0 8px 24px rgba(22,163,74,0.12),
+                0 20px 48px rgba(0,0,0,0.32);
     border-color: var(--accent-border) !important;
+    background: var(--bg-hover) !important;
   }
   .glow-card:active {
-    transform: scale(0.98);
-    transition-duration: 0.1s;
+    transform: translateY(-2px) scale(0.98);
+    transition-duration: 0.12s;
   }
 
   /* Icon bounce on parent hover */
   .card-hover:hover .icon-bounce,
   .glow-card:hover .icon-bounce {
-    animation: iconBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: iconBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   @keyframes iconBounce {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.22); }
-    100% { transform: scale(1); }
+    0%   { transform: scale(1) rotate(0deg); }
+    40%  { transform: scale(1.28) rotate(-6deg); }
+    70%  { transform: scale(0.95) rotate(3deg); }
+    100% { transform: scale(1) rotate(0deg); }
   }
 
   .card-hover {
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1),
+                box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s ease,
+                background 0.3s ease;
   }
   .card-hover:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--accent-border);
+    transform: translateY(-5px) scale(1.015);
+    box-shadow: 0 0 0 1px var(--accent-border),
+                0 8px 24px rgba(22,163,74,0.1),
+                0 20px 48px rgba(0,0,0,0.3);
     border-color: var(--accent-border) !important;
+    background: var(--bg-hover) !important;
   }
   .card-hover:active {
-    transform: translateY(-1px) scale(0.99);
-    transition-duration: 0.1s;
+    transform: translateY(-1px) scale(0.98);
+    transition-duration: 0.12s;
+  }
+
+  /* Step number glow on card hover */
+  .card-hover:hover .step-badge,
+  .glow-card:hover .step-badge {
+    box-shadow: 0 0 0 4px var(--accent-subtle), 0 0 20px var(--accent-subtle);
+    transition: box-shadow 0.35s ease;
+  }
+  .step-badge {
+    transition: box-shadow 0.35s ease;
   }
 
   /* Smooth word fade-in for streaming */

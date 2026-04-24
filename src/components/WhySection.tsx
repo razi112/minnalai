@@ -120,10 +120,10 @@ export default function WhySection() {
         }}
       >
         <h2 className="text-4xl sm:text-5xl font-bold shrink-0" style={{ letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-          Why Minnal AI?
+          Why AI Islam?
         </h2>
         <p className="text-sm max-w-xs sm:ml-auto" style={{ color: 'var(--text-secondary)', lineHeight: 1.75, paddingTop: '6px' }}>
-          Minnal AI is a specialized, state-of-the-art application built to provide authentic Islamic guidance, carefully sourcing from trusted Islamic texts.
+          AI Islam is a specialized, state-of-the-art application built to provide authentic Islamic guidance, carefully sourcing from trusted Islamic texts.
         </p>
       </div>
 

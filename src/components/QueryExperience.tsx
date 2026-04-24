@@ -87,13 +87,27 @@ function PhoneNotification({ visible }: { visible: boolean }) {
         <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
           Friday, March 24
         </p>
-        <div style={{
-          width: '100%', marginTop: '40px', borderRadius: '16px', padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: '12px',
-          background: 'rgba(30,30,30,0.95)', backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          animation: visible ? 'notifSlideIn 0.6s cubic-bezier(0.22,1,0.36,1) 0.7s both' : 'none',
-        }}>
+        <div
+          style={{
+            width: '100%', marginTop: '40px', borderRadius: '16px', padding: '12px 16px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            background: 'rgba(30,30,30,0.95)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            animation: visible ? 'notifSlideIn 0.6s cubic-bezier(0.22,1,0.36,1) 0.7s both' : 'none',
+            cursor: 'default',
+            transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, border-color 0.25s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.01)'
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+          }}
+        >
           <div style={{
             width: '36px', height: '36px', borderRadius: '12px', background: '#22c97a',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -102,7 +116,7 @@ function PhoneNotification({ visible }: { visible: boolean }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#fff' }}>Minnal AI </p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#fff' }}>AI Islam </p>
               <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>now</p>
             </div>
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>
@@ -129,6 +143,7 @@ function PhoneOTP() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      
     }}>
       <div style={{
         width: '60px', height: '60px', borderRadius: '50%',
@@ -321,7 +336,7 @@ function PhoneDeepLink() {
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2563eb' }} />
           </div>
           <div>
-            <p style={{ fontSize: '11px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>Minnal AI App</p>
+            <p style={{ fontSize: '11px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>AI Islam App</p>
             <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.2 }}>/chat/3f9a2...</p>
           </div>
         </div>

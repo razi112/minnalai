@@ -59,7 +59,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden text-app" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="flex min-h-screen w-full text-app" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       
       {/* Mobile overlay */}
       {mobileSidebarOpen && (
@@ -70,7 +70,7 @@ export default function App() {
       )}
 
       {/* Sidebar — desktop */}
-      <div className="relative hidden md:flex h-full">
+      <div className="relative hidden md:flex sticky top-0 h-screen self-start">
         <Sidebar
           chats={chats}
           activeChatId={activeChatId}
@@ -104,7 +104,7 @@ export default function App() {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div className="flex flex-col flex-1 min-w-0 min-h-screen">
         
         {/* Header */}
         <header className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -136,7 +136,7 @@ export default function App() {
           {/* Title */}
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-medium truncate" style={{ color: 'var(--text-secondary)' }}>
-              {activeChat?.title ?? 'AI Chat'}
+              {activeChat?.title ?? 'AI Islam'}
             </h1>
           </div>
 

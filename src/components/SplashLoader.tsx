@@ -27,7 +27,7 @@ export default function SplashLoader({ children }: { children: React.ReactNode }
         }}>
           <Loader />
           <p style={{ marginTop: '20px', fontSize: '14px', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-            Loading Minnal AI...
+            Loading AI Islam...
           </p>
         </div>
       )}

@@ -42,7 +42,7 @@ export default function InstallGuide() {
     {
       num: 3,
       label: 'Select "Install page as app"',
-      desc: 'A sub-menu will appear. Click "Install page as app" to install Minnal AI.',
+      desc: 'A sub-menu will appear. Click "Install page as app" to install AI Islam.',
       visual: (
         <div style={{
           padding: '10px 18px', borderRadius: '10px',
@@ -79,7 +79,7 @@ export default function InstallGuide() {
         fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)',
         margin: '0 0 8px', letterSpacing: '-0.03em', textAlign: 'center',
       }}>
-        Install Minnal AI
+        Install AI Islam
       </h1>
       <p style={{
         fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 40px',

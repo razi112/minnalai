@@ -20,17 +20,19 @@ export interface Chat {
   createdAt: Date
 }
 
-const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const API_KEY = import.meta.env.VITE_GROQ_API_KEY as string
+// In dev: Vite proxies /api/chat → api.groq.com (no CORS)
+// In prod: Vercel Edge Function at /api/chat proxies server-side (no CORS)
+const OPENROUTER_URL = '/api/chat'
 
-// Fallback model chain
+// Groq-supported model chain
 const MODEL_CHAIN = [
-  'google/gemini-2.5-flash-preview',
-  'google/gemini-2.0-flash-001',
-  'google/gemini-flash-1.5',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it',
 ]
 
-const SYSTEM_PROMPT = `You are Minnal AI — the intelligent core of this chat system.
+const SYSTEM_PROMPT = `You are AI Islam — the intelligent Islamic guidance core of this chat system.
 
 Think before responding. Understand the user's intent, context, and goal clearly before answering.
 
@@ -139,10 +141,8 @@ async function streamWithFallback(
       const res = await fetch(OPENROUTER_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${API_KEY}`,
+          ...(API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {}),
           'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Minnal AI',
         },
         body: JSON.stringify({
           model,
@@ -254,13 +254,11 @@ async function streamWithThinking(
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
+      ...(API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {}),
       'Content-Type': 'application/json',
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'Minnal AI',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash-preview:thinking',
+      model: 'llama-3.3-70b-versatile',
       messages: builtMessages,
       stream: true,
       max_tokens: 16000,
