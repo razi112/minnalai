@@ -95,17 +95,13 @@ function PhoneNotification({ visible }: { visible: boolean }) {
             border: '1px solid rgba(255,255,255,0.08)',
             animation: visible ? 'notifSlideIn 0.6s cubic-bezier(0.22,1,0.36,1) 0.7s both' : 'none',
             cursor: 'default',
-            transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, border-color 0.25s ease',
+            transition: 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.transform = 'scale(1.01)'
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+            e.currentTarget.style.transform = 'scale(1.06)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = 'none'
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
           }}
         >
           <div style={{

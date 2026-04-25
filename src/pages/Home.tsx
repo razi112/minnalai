@@ -124,12 +124,12 @@ export default function Home() {
                 color: '#fff',
                 boxShadow: '0 0 18px var(--accent-subtle)',
                 transform: 'scale(1)',
-                transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+                transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 0 28px var(--accent-border)' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 0 36px var(--accent-border)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 0 18px var(--accent-subtle)' }}
               onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)' }}
-              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
             >
               Begin Your Journey
             </button>
@@ -261,7 +261,7 @@ export default function Home() {
                   <svg viewBox="0 0 16 16" style={{ width: '16px' }}><path fill="#fff" d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/></svg>
                 </a>
                 {/* LinkedIn */}
-                <a href="#" aria-label="LinkedIn" className="s-li" style={{ width: '42px', height: '42px', background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexShrink: 0 }}>
+                <a href="https://www.linkedin.com/in/mhd-razi-b210bb385/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="s-li" style={{ width: '42px', height: '42px', background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexShrink: 0 }}>
                   <svg viewBox="0 0 448 512" style={{ width: '16px' }}><path fill="#fff" d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 0 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z"/></svg>
                 </a>
                 {/* WhatsApp */}
