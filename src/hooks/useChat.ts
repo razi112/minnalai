@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, GUEST_MESSAGE_LIMIT } from '../context/AuthContext'
 
 export interface Message {
   id: string
@@ -436,7 +436,7 @@ async function deleteAllSupabaseChats(userId: string): Promise<void> {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useChat() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, isGuest, guestMessageCount, guestLimitReached, incrementGuestCount } = useAuth()
   const userId = user?.id ?? null
 
   const [chats, setChats] = useState<Chat[]>([])
@@ -545,6 +545,9 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (content: string, images: { base64: string; mimeType: string }[] = [], mode: 'default' | 'image' | 'canvas' | 'deep-search' | 'web-search' | 'thinking' = 'default') => {
+      // Block guests who have hit the message limit
+      if (isGuest && guestLimitReached) return
+
       // Create a fresh AbortController for this generation
       const controller = new AbortController()
       abortControllerRef.current = controller
@@ -593,6 +596,9 @@ export function useChat() {
       setIsTyping(true)
       setStreamingContent('')
       setStreamingThinking('')
+
+      // Track guest message usage
+      if (isGuest) incrementGuestCount()
 
       try {
         if (mode === 'image' || (isImageGenRequest(content) && images.length === 0)) {
@@ -919,5 +925,6 @@ INSTRUCTIONS:
     chats, activeChat, activeChatId, isTyping, streamingContent, streamingThinking, loaded,
     setActiveChatId, createChat, deleteChat, renameChat,
     sendMessage, regenerate, editMessage, clearAllChats, stopGeneration,
+    isGuest, guestMessageCount, guestLimitReached, guestMessageLimit: GUEST_MESSAGE_LIMIT,
   }
 }

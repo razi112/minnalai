@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, MessageSquare, Pencil, Trash2, Settings, Menu } from 'lucide-react'
+import { Plus, MessageSquare, Pencil, Trash2, Settings, Menu, LogIn } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { Chat } from '../hooks/useChat'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, GUEST_MESSAGE_LIMIT } from '../context/AuthContext'
 import AccountModal from './AccountModal'
 
 interface Props {
@@ -25,7 +26,8 @@ export default function Sidebar({
   const [editValue, setEditValue] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
   const editRef = useRef<HTMLInputElement>(null)
-  const { user } = useAuth()
+  const { user, isGuest, guestMessageCount } = useAuth()
+  const navigate = useNavigate()
 
   const name = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? 'Account'
   const avatar = user?.user_metadata?.avatar_url ?? null
@@ -181,34 +183,66 @@ export default function Sidebar({
             <span>Settings</span>
           </button>
 
-          <button
-            onClick={() => setAccountOpen(true)}
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-150"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--bg-hover)'
-              e.currentTarget.style.color = 'var(--text-secondary)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--text-muted)'
-            }}
-          >
-            {avatar ? (
-              <img src={avatar} alt={name} className="w-5 h-5 rounded-full object-cover shrink-0" />
-            ) : (
+          {isGuest ? (
+            /* Guest — show sign-in prompt with message counter */
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-150"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }}
+            >
               <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                style={{ background: 'var(--accent)' }}
+                className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'var(--bg-hover)', border: '1px dashed var(--border)' }}
               >
-                {initials}
+                <LogIn size={10} style={{ color: 'var(--text-muted)' }} />
               </div>
-            )}
-            <span className="truncate">{name}</span>
-          </button>
+              <span className="truncate flex-1 text-left">Guest</span>
+              <span
+                className="shrink-0 text-xs px-1.5 py-0.5 rounded-md font-medium"
+                style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: '10px' }}
+              >
+                {guestMessageCount}/{GUEST_MESSAGE_LIMIT}
+              </span>
+            </button>
+          ) : (
+            /* Logged-in user */
+            <button
+              onClick={() => setAccountOpen(true)}
+              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-150"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }}
+            >
+              {avatar ? (
+                <img src={avatar} alt={name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+              ) : (
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {initials}
+                </div>
+              )}
+              <span className="truncate">{name}</span>
+            </button>
+          )}
         </div>
 
-        {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
+        {!isGuest && accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
       </div>
     </aside>
   )

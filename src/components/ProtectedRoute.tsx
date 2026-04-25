@@ -2,8 +2,9 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
 
+  // Show spinner while auth is resolving
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
@@ -15,5 +16,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     )
   }
 
-  return user ? <>{children}</> : <Navigate to="/login" replace />
+  // Once auth resolves, always allow through.
+  // Guests (no user) are handled inside the app with message limits.
+  // Only redirect if we somehow get here while still loading (shouldn't happen).
+  return <>{children}</>
 }

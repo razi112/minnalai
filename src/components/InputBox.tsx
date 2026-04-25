@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react'
-import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain, Square } from 'lucide-react'
+import { ArrowUp, X, Image, PenLine, Globe, Search, Mic, MicOff, Brain, Square, Lock } from 'lucide-react'
 
 interface ImageAttachment {
   base64: string
@@ -13,6 +13,7 @@ interface Props {
   onSend: (message: string, images: { base64: string; mimeType: string }[], mode: ChatMode) => void
   onStop?: () => void
   disabled?: boolean
+  guestLimitReached?: boolean
 }
 
 const TOOL_LABELS: Record<ChatMode, string> = {
@@ -36,7 +37,7 @@ const TOOL_ICONS: Record<ChatMode, React.ReactNode> = {
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 const hasSpeech = !!SpeechRecognition
 
-export default function InputBox({ onSend, onStop, disabled }: Props) {
+export default function InputBox({ onSend, onStop, disabled, guestLimitReached }: Props) {
   const [value, setValue] = useState('')
   const [images, setImages] = useState<ImageAttachment[]>([])
   const [activeMode, setActiveMode] = useState<ChatMode>('default')
@@ -123,6 +124,30 @@ export default function InputBox({ onSend, onStop, disabled }: Props) {
     activeMode === 'web-search'   ? 'Search the web for anything…' :
     activeMode === 'deep-search'  ? 'What do you want to research in depth?' :
     images.length > 0             ? 'Add a message or send image…' : 'Ask anything…'
+
+  // ── Guest limit reached — show disabled input (redirect handled by App) ──
+  if (guestLimitReached) {
+    return (
+      <div className="px-4 pb-4 pt-2">
+        <div className="max-w-3xl mx-auto">
+          <div
+            className="flex items-center gap-3 rounded-2xl px-5 py-4"
+            style={{
+              background: 'var(--bg-hover)',
+              border: '1px dashed var(--border)',
+              opacity: 0.6,
+              cursor: 'not-allowed',
+            }}
+          >
+            <Lock size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Redirecting to sign in…
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="px-4 pb-4 pt-2">

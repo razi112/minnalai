@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabase'
+import { GUEST_MESSAGE_LIMIT } from '../context/AuthContext'
 
 function GoogleIcon() {
   return (
@@ -322,6 +323,40 @@ export default function Login() {
             {' '}and{' '}
             <span className="underline cursor-pointer" style={{ color: 'var(--text-secondary)' }}>Privacy Policy</span>
           </p>
+
+          {/* Guest access */}
+          <div className="flex flex-col items-center gap-1.5 pt-1">
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+              <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>or try without an account</span>
+              <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 rounded-xl text-sm font-medium transition-all duration-150 mt-1"
+              style={{
+                background: 'transparent',
+                border: '1px dashed var(--border)',
+                color: 'var(--text-muted)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--accent-border)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--text-muted)'
+              }}
+            >
+              Continue as Guest
+              <span
+                className="ml-2 px-1.5 py-0.5 rounded-md text-xs font-semibold"
+                style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: '10px' }}
+              >
+                {GUEST_MESSAGE_LIMIT} messages only
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

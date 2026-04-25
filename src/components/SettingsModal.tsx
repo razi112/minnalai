@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Sun, Moon, Monitor, Trash2, ChevronRight, Camera, Loader, Mail, Pencil, Check } from 'lucide-react'
+import { X, Sun, Moon, Monitor, Trash2, ChevronRight, Camera, Loader, Mail, Pencil, Check, LogIn } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabase'
@@ -9,9 +10,9 @@ interface Props {
   onClearChats: () => void
 }
 
-type Section = 'Profile' | 'General' | 'Personalization' | 'AI Behavior' | 'Model' | 'Data Controls'
+type Section = 'Profile' | 'General' | 'Personalization' | 'AI Behavior' | 'Data Controls'
 
-const SECTIONS: Section[] = ['Profile', 'General', 'Personalization', 'AI Behavior', 'Model', 'Data Controls']
+const SECTIONS: Section[] = ['Profile', 'General', 'Personalization', 'AI Behavior', 'Data Controls']
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -77,7 +78,8 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
   const [contentKey, setContentKey] = useState(0)
 
   const { theme, contrast, accent, setTheme, setContrast, setAccent } = useTheme()
-  const { user } = useAuth()
+  const { user, isGuest } = useAuth()
+  const navigate = useNavigate()
 
   // profile state
   const storedName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? 'User'
@@ -149,8 +151,6 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
   // ai behavior
   const [style, setStyle] = useState('Default')
   const [length, setLength] = useState('Medium')
-  // model
-  const [model, setModel] = useState('Balanced')
   // data controls
   const [chatHistory, setChatHistory] = useState(true)
 
@@ -229,6 +229,46 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
               <div>
                 <SectionHeading title="Profile" />
 
+                {isGuest ? (
+                  /* Guest — no account to show */
+                  <div className="flex flex-col items-center gap-4 py-6 text-center">
+                    <div
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                      style={{ background: 'var(--accent-subtle)' }}
+                    >
+                      <LogIn size={22} style={{ color: 'var(--accent)' }} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        You're browsing as a guest
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        Sign up for free to save your chat history, sync across devices, and get unlimited messages.
+                      </p>
+                    </div>
+                    <div className="flex gap-2 w-full max-w-xs">
+                      <button
+                        onClick={() => { handleClose(); navigate('/login') }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                        style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 4px 14px var(--accent-subtle)' }}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = '0.88' }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+                      >
+                        Sign up free
+                      </button>
+                      <button
+                        onClick={() => { handleClose(); navigate('/login') }}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
+                        style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                      >
+                        Sign in
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 {/* Avatar */}
                 <div className="flex flex-col items-center gap-2 mb-6">
                   <div
@@ -296,6 +336,8 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
 
                 {profileOk && <p className="text-xs mt-3 px-3 py-2 rounded-lg" style={{ color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>{profileOk}</p>}
                 {profileErr && <p className="text-xs mt-3 px-3 py-2 rounded-lg" style={{ color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>{profileErr}</p>}
+                  </>
+                )}
               </div>
             )}
 
@@ -419,46 +461,6 @@ export default function SettingsModal({ onClose, onClearChats }: Props) {
                     onChange={setLength}
                   />
                 </Row>
-              </div>
-            )}
-
-            {activeSection === 'Model' && (
-              <div>
-                <SectionHeading title="Model" />
-                <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Choose the model that fits your needs</p>
-                <div className="space-y-2">
-                  {[
-                    { key: 'Fast', label: 'Fast', sub: 'gemini-2.0-flash-lite · Quick responses, lower latency' },
-                    { key: 'Balanced', label: 'Balanced', sub: 'gemini-2.0-flash · Best mix of speed and quality' },
-                    { key: 'Smart', label: 'Smart', sub: 'gemini-2.5-flash · Most capable, deeper reasoning' },
-                  ].map(({ key, label, sub }) => (
-                    <button
-                      key={key}
-                      onClick={() => setModel(key)}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-150"
-                      style={{
-                        border: `1px solid ${model === key ? 'var(--text-muted)' : 'var(--border)'}`,
-                        background: model === key ? 'var(--bg-hover)' : 'transparent',
-                        color: model === key ? 'var(--text-primary)' : 'var(--text-muted)',
-                      }}
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{label}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
-                      </div>
-                      <div
-                        className="w-4 h-4 rounded-full flex items-center justify-center transition-all"
-                        style={{
-                          border: `2px solid ${model === key ? 'var(--text-primary)' : 'var(--border)'}`,
-                        }}
-                      >
-                        {model === key && (
-                          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--text-primary)' }} />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
 
