@@ -319,15 +319,7 @@ export default function Home() {
               {' '}· All Rights Reserved.
             </p>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-              Built by{' '}
-              <span style={{
-                fontWeight: 800,
-                letterSpacing: '0.06em',
-                background: 'linear-gradient(90deg, #a855f7, #6366f1)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>HIKMA CLASS UNION</span>
+              AI Islam can make mistakes, ask scholars for confirmation.
             </p>
           </div>
         </footer>

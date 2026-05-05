@@ -120,7 +120,7 @@ export default function Sidebar({
                       ref={editRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      onBlur={() => commitEdit(chat.id)}
+                      onBlur={() => setEditingId(null)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') commitEdit(chat.id)
                         if (e.key === 'Escape') setEditingId(null)

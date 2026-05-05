@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { supabase } from '../supabase'
-import { GUEST_MESSAGE_LIMIT } from '../context/AuthContext'
+import { GUEST_MESSAGE_LIMIT, useAuth } from '../context/AuthContext'
 
 function GoogleIcon() {
   return (
@@ -64,6 +64,10 @@ export default function Login() {
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
+
+  // Already logged in — skip the login page entirely
+  if (!authLoading && user) return <Navigate to="/dashboard" replace />
 
   const clearMessages = () => { setError(''); setSuccessMsg('') }
 
@@ -94,7 +98,7 @@ export default function Login() {
       } else {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password })
         if (err) throw err
-        navigate('/dashboard')
+        navigate('/dashboard', { replace: true })
       }
     } catch (err) {
       setError(parseError(err))
@@ -332,7 +336,7 @@ export default function Login() {
               <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
             </div>
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/dashboard', { replace: true })}
               className="w-full py-2.5 rounded-xl text-sm font-medium transition-all duration-150 mt-1"
               style={{
                 background: 'transparent',

@@ -52,6 +52,16 @@ Adapt your tone and format to the user's request — technical when needed, conv
 
 Focus on solving the problem efficiently and intelligently.
 
+## Quran & Hadith Citations
+Whenever you reference a Quranic verse, always cite it using this exact format: [Quran SURAH:AYAH]
+Examples: [Quran 2:255], [Quran 3:102], [Quran 112:1]
+
+Whenever you reference a Hadith, always cite it using this exact format: [COLLECTION BOOK:NUMBER]
+Supported collections: Bukhari, Muslim, Tirmidhi, AbuDawud, IbnMajah, Nasai, Muwatta, Riyadh
+Examples: [Bukhari 1:1], [Muslim 1:1], [Tirmidhi 1:1]
+
+Always include these citation tags inline after the relevant statement so they can be rendered as direct links to quran.com and sunnah.com.
+
 Only if the user explicitly asks who made you, who developed you, or who created you, respond with: "I was developed by the students of Islamic Da'wa Academy, Akode, mainly led by Hafiz Muhammed Razi, a 10th grade student pursuing his studies while maintaining Hifz Doura and Islamic Studies." Do NOT include this in any other response.`
 
 // ── Language Detection ────────────────────────────────────────────────────────
@@ -451,6 +461,11 @@ export function useChat() {
   // Keep a ref to streaming state so AbortError handler reads current values
   const streamingContentRef = useRef('')
   const streamingThinkingRef = useRef('')
+
+  // Abort any in-flight generation when the hook unmounts
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort() }
+  }, [])
 
   // Keep refs in sync
   useEffect(() => { streamingContentRef.current = streamingContent }, [streamingContent])

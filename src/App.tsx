@@ -26,10 +26,9 @@ export default function App() {
 
   // Redirect to login when guest limit is reached
   useEffect(() => {
-    if (guestLimitReached) {
-      const timer = setTimeout(() => navigate('/login'), 800)
-      return () => clearTimeout(timer)
-    }
+    if (!guestLimitReached) return
+    const timer = setTimeout(() => navigate('/login'), 800)
+    return () => clearTimeout(timer)
   }, [guestLimitReached, navigate])
 
   // 🔥 Capture install event

@@ -389,7 +389,7 @@ export default function About() {
                     The institution is a prime example of higher studies for Huffaz — those who have
                     completed the memorisation of the Holy Quran.
                   </p>
-                  {/* Hikma Class Union badge */}
+                  {/* Disclaimer badge */}
                   <div
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold"
                     style={{
@@ -405,7 +405,7 @@ export default function About() {
                       backgroundClip: 'text',
                       letterSpacing: '0.06em',
                     }}>
-                      HIKMA CLASS UNION
+                      AI Islam can make mistakes, ask scholars for confirmation.
                     </span>
                   </div>
                 </div>
@@ -468,7 +468,7 @@ export default function About() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-              }}>HIKMA CLASS UNION</span>
+              }}>AI Islam can make mistakes, ask scholars for confirmation.</span>
             </span>
           </footer>
 

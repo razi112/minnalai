@@ -275,7 +275,7 @@ export default function InputBox({ onSend, onStop, disabled, guestLimitReached }
         </div>
 
         <p className="text-center text-xs mt-2 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
-         BY HIKMA CLASS UNION 
+         AI Islam can make mistakes, ask scholars for confirmation.
         </p>
       </div>
     </div>

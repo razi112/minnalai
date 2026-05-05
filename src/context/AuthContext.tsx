@@ -58,7 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeout)
     }
   }, [])
-
   const incrementGuestCount = useCallback(() => {
     setGuestMessageCount((prev) => {
       const next = prev + 1

@@ -18,7 +18,7 @@ export default function PWAInstallPrompt() {
     // Skip if already installed as standalone
     if (window.matchMedia('(display-mode: standalone)').matches) return
     // Skip if user already dismissed
-    if (sessionStorage.getItem('pwa-dismissed')) return
+    if (localStorage.getItem('pwa-dismissed')) return
 
     const t = setTimeout(() => setVisible(true), 2800)
     return () => clearTimeout(t)
@@ -32,18 +32,18 @@ export default function PWAInstallPrompt() {
         await prompt.userChoice
       } catch (_) {}
       setVisible(false)
-      sessionStorage.setItem('pwa-dismissed', '1')
+      localStorage.setItem('pwa-dismissed', '1')
     } else {
       // No native prompt — guide the user through Chrome's menu
       setVisible(false)
-      sessionStorage.setItem('pwa-dismissed', '1')
+      localStorage.setItem('pwa-dismissed', '1')
       navigate('/install')
     }
   }
 
   const cancel = () => {
     setVisible(false)
-    sessionStorage.setItem('pwa-dismissed', '1')
+    localStorage.setItem('pwa-dismissed', '1')
   }
 
   if (!visible) return null

@@ -79,7 +79,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handler = () => { if (theme === 'System') applyTheme('System', contrast, accent) }
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
-  }, []) // eslint-disable-line
+  }, [theme, contrast, accent])
 
   return (
     <ThemeContext.Provider value={{ theme, contrast, accent, setTheme, setContrast, setAccent }}>

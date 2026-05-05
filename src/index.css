@@ -203,7 +203,16 @@
     transform: scale(0.97);
     transition-duration: 0.1s;
   }
-  .glow-card {
+
+  /* Sidebar & chat-area buttons must never scale — they'd shift the layout */
+  aside button,
+  aside button:hover,
+  aside button:active,
+  header button,
+  header button:hover,
+  header button:active {
+    transform: none !important;
+  }  .glow-card {
     transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1),
                 box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.3s ease,

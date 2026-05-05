@@ -62,6 +62,131 @@ function StreamingText({ content }: { content: string }) {
   )
 }
 
+// ── Quran & Hadith Citation Parser ───────────────────────────────────────────
+// Matches: [Quran 2:255]  [Bukhari 1:1]  [Muslim 4:1234]  etc.
+const HADITH_COLLECTIONS: Record<string, string> = {
+  bukhari:  'bukhari',
+  muslim:   'muslim',
+  tirmidhi: 'tirmidhi',
+  abudawud: 'abudawud',
+  ibnmajah: 'ibnmajah',
+  nasai:    'nasai',
+  muwatta:  'malik',
+  riyadh:   'riyadussalihin',
+}
+
+function buildQuranUrl(surah: string, ayah: string) {
+  return `https://quran.com/${surah}/${ayah}`
+}
+function buildHadithUrl(collection: string, book: string, number: string) {
+  const key = HADITH_COLLECTIONS[collection.toLowerCase()] ?? collection.toLowerCase()
+  return `https://sunnah.com/${key}:${book}:${number}`
+}
+
+interface CitationToken {
+  type: 'text' | 'quran' | 'hadith'
+  text: string
+  url?: string
+  label?: string
+}
+
+function parseCitations(content: string): CitationToken[] {
+  const tokens: CitationToken[] = []
+  // Combined regex — order matters: quran first, then hadith
+  const combined = new RegExp(
+    `(\\[Quran\\s+(\\d+):(\\d+)\\])|(\\[(Bukhari|Muslim|Tirmidhi|AbuDawud|IbnMajah|Nasai|Muwatta|Riyadh)\\s+(\\d+):(\\d+)\\])`,
+    'gi'
+  )
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = combined.exec(content)) !== null) {
+    if (match.index > last) tokens.push({ type: 'text', text: content.slice(last, match.index) })
+    if (match[1]) {
+      // Quran
+      tokens.push({ type: 'quran', text: match[1], url: buildQuranUrl(match[2], match[3]), label: `Quran ${match[2]}:${match[3]}` })
+    } else if (match[4]) {
+      // Hadith
+      tokens.push({ type: 'hadith', text: match[4], url: buildHadithUrl(match[5], match[6], match[7]), label: `${match[5]} ${match[6]}:${match[7]}` })
+    }
+    last = match.index + match[0].length
+  }
+  if (last < content.length) tokens.push({ type: 'text', text: content.slice(last) })
+  return tokens
+}
+
+function CitationLink({ token }: { token: CitationToken }) {
+  if (token.type === 'text') return <>{token.text}</>
+  const isQuran = token.type === 'quran'
+  return (
+    <>
+      <style>{`
+        .citation-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          padding: 1px 7px 1px 5px;
+          border-radius: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          vertical-align: middle;
+          margin: 0 2px;
+          white-space: nowrap;
+        }
+        .citation-quran {
+          background: rgba(212, 160, 23, 0.12);
+          border: 1px solid rgba(212, 160, 23, 0.35);
+          color: #d4a017;
+        }
+        .citation-quran:hover {
+          background: rgba(212, 160, 23, 0.22);
+          border-color: rgba(212, 160, 23, 0.6);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(212, 160, 23, 0.2);
+        }
+        .citation-hadith {
+          background: var(--accent-subtle);
+          border: 1px solid var(--accent-border);
+          color: var(--accent);
+        }
+        .citation-hadith:hover {
+          background: rgba(22, 163, 74, 0.18);
+          border-color: var(--accent);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
+        }
+        .citation-icon {
+          font-size: 10px;
+          opacity: 0.8;
+        }
+      `}</style>
+      <a
+        href={token.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`citation-link ${isQuran ? 'citation-quran' : 'citation-hadith'}`}
+        title={`Open ${token.label} on ${isQuran ? 'quran.com' : 'sunnah.com'}`}
+      >
+        <span className="citation-icon">{isQuran ? '📖' : '📜'}</span>
+        {token.label}
+        <svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.6, flexShrink: 0 }}>
+          <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </a>
+    </>
+  )
+}
+
+// Wraps a ReactMarkdown text node and injects citation links
+function CitationText({ children }: { children: React.ReactNode }) {
+  if (typeof children !== 'string') return <>{children}</>
+  const tokens = parseCitations(children)
+  if (tokens.length === 1 && tokens[0].type === 'text') return <>{children}</>
+  return <>{tokens.map((t, i) => <CitationLink key={i} token={t} />)}</>
+}
+
 function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming?: boolean }) {
   const [open, setOpen] = useState(false)
   return (
@@ -532,7 +657,7 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
               )
             },
             p({ children }) {
-              return <p className="mb-3 last:mb-0" style={{ color: 'var(--text-primary)' }}>{children}</p>
+              return <p className="mb-3 last:mb-0" style={{ color: 'var(--text-primary)' }}><CitationText>{children as any}</CitationText></p>
             },
             ul({ children }) {
               return <ul className="list-disc list-inside mb-3 space-y-1" style={{ color: 'var(--text-secondary)' }}>{children}</ul>
@@ -541,7 +666,7 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
               return <ol className="list-decimal list-inside mb-3 space-y-1" style={{ color: 'var(--text-secondary)' }}>{children}</ol>
             },
             li({ children }) {
-              return <li style={{ color: 'var(--text-secondary)' }}>{children}</li>
+              return <li style={{ color: 'var(--text-secondary)' }}><CitationText>{children as any}</CitationText></li>
             },
             strong({ children }) {
               return <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>
@@ -561,7 +686,7 @@ export default function MessageBubble({ message, isStreaming, isLast, onRegenera
                   className="pl-3 italic my-2"
                   style={{ borderLeft: '2px solid var(--border)', color: 'var(--text-muted)' }}
                 >
-                  {children}
+                  <CitationText>{children as any}</CitationText>
                 </blockquote>
               )
             },
