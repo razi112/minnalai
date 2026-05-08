@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { supabase } from '../supabase'
+import {
+  collection, doc, setDoc, deleteDoc, getDocs,
+  query, orderBy, writeBatch,
+} from 'firebase/firestore'
+import { db } from '../firebase'
 import { useAuth, GUEST_MESSAGE_LIMIT } from '../context/AuthContext'
 
 export interface Message {
@@ -20,17 +24,28 @@ export interface Chat {
   createdAt: Date
 }
 
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY as string
-// In dev: Vite proxies /api/chat → api.groq.com (no CORS)
-// In prod: Vercel Edge Function at /api/chat proxies server-side (no CORS)
-const OPENROUTER_URL = '/api/chat'
+// OpenRouter — OpenAI-compatible API, supports many models
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string
 
-// Groq-supported model chain
+// Primary: llama-3.3-70b is the fastest high-quality model on OpenRouter
+// Fallbacks: gemini-flash variants on quota/overload
 const MODEL_CHAIN = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'gemma2-9b-it',
+  'meta-llama/llama-3.3-70b-instruct',
+  'google/gemini-2.0-flash-001',
+  'google/gemini-flash-1.5',
 ]
+
+// Shared request headers
+const OR_HEADERS = {
+  'Authorization': `Bearer ${OPENROUTER_KEY}`,
+  'Content-Type': 'application/json',
+  'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+  'X-Title': 'AI Islam',
+}
+
+// Only keep the last N messages to reduce payload size and TTFT
+const MAX_HISTORY = 10
 
 const SYSTEM_PROMPT = `You are AI Islam — the intelligent Islamic guidance core of this chat system.
 
@@ -111,8 +126,11 @@ function detectLanguage(text: string): string | null {
   return null
 }
 
+// ── OpenRouter streaming helpers ──────────────────────────────────────────────
+
 function buildMessages(messages: Message[], userContent: string, images: { base64: string; mimeType: string }[]) {
-  const history = messages.map((m) => ({
+  // Trim history to last MAX_HISTORY messages to reduce payload & TTFT
+  const history = messages.slice(-MAX_HISTORY).map((m) => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }))
@@ -127,7 +145,6 @@ function buildMessages(messages: Message[], userContent: string, images: { base6
     ? { role: 'user', content: userParts }
     : { role: 'user', content: userContent }
 
-  // Detect language and append instruction to system prompt
   const detectedLang = detectLanguage(userContent)
   const langInstruction = detectedLang
     ? `\n\nIMPORTANT: The user is writing in ${detectedLang}. You MUST reply entirely in ${detectedLang}. Do not switch languages.`
@@ -135,6 +152,24 @@ function buildMessages(messages: Message[], userContent: string, images: { base6
   const systemPrompt = SYSTEM_PROMPT + langInstruction
 
   return [{ role: 'system', content: systemPrompt }, ...history, userMessage]
+}
+
+// Throttled chunk emitter — batches React state updates via rAF to avoid
+// re-rendering on every single token (can be 50+ renders/sec otherwise)
+function makeThrottledEmitter(onChunk: (text: string) => void) {
+  let pending = ''
+  let rafId = 0
+  const flush = () => { onChunk(pending); rafId = 0 }
+  return {
+    emit(text: string) {
+      pending = text
+      if (!rafId) rafId = requestAnimationFrame(flush)
+    },
+    flush() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0 }
+      onChunk(pending)
+    },
+  }
 }
 
 async function streamWithFallback(
@@ -146,20 +181,20 @@ async function streamWithFallback(
   signal?: AbortSignal
 ): Promise<string> {
   const builtMessages = buildMessages(messages, userContent, images)
+  const emitter = makeThrottledEmitter(onChunk)
 
   for (const model of MODEL_CHAIN) {
     try {
       const res = await fetch(OPENROUTER_URL, {
         method: 'POST',
-        headers: {
-          ...(API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {}),
-          'Content-Type': 'application/json',
-        },
+        headers: OR_HEADERS,
         body: JSON.stringify({
           model,
           messages: builtMessages,
           stream: true,
           max_tokens: maxTokens,
+          temperature: 0.7,
+          stream_options: { include_usage: false },
         }),
         signal,
       })
@@ -173,7 +208,6 @@ async function streamWithFallback(
 
       const reader = res.body?.getReader()
       if (!reader) throw new Error('No response body')
-
       const decoder = new TextDecoder()
       let fullText = ''
 
@@ -189,20 +223,19 @@ async function streamWithFallback(
             const delta = json.choices?.[0]?.delta?.content ?? ''
             if (delta) {
               fullText += delta
-              onChunk(fullText)
+              emitter.emit(fullText)
             }
-          } catch { /* skip malformed lines */ }
+          } catch { /* skip malformed */ }
         }
       }
-
+      emitter.flush()
       return fullText
     } catch (err: any) {
-      if (err?.name === 'AbortError') throw err
+      if (err?.name === 'AbortError') { emitter.flush(); throw err }
       if (MODEL_CHAIN.indexOf(model) < MODEL_CHAIN.length - 1) continue
       throw err
     }
   }
-
   throw new Error('All models are currently unavailable. Please try again.')
 }
 
@@ -255,7 +288,7 @@ async function fetchWebSearchContext(query: string): Promise<string> {
   return results.length ? results.join('\n\n') : ''
 }
 
-// ── Thinking mode — uses reasoning model ─────────────────────────────────────
+// ── Thinking mode ─────────────────────────────────────────────────────────────
 async function streamWithThinking(
   messages: Message[],
   userContent: string,
@@ -267,15 +300,14 @@ async function streamWithThinking(
 
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
-    headers: {
-      ...(API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {}),
-      'Content-Type': 'application/json',
-    },
+    headers: OR_HEADERS,
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'meta-llama/llama-3.3-70b-instruct',
       messages: builtMessages,
       stream: true,
       max_tokens: 16000,
+      temperature: 0.7,
+      stream_options: { include_usage: false },
     }),
     signal,
   })
@@ -305,39 +337,26 @@ async function streamWithThinking(
         const json = JSON.parse(trimmed)
         const delta = json.choices?.[0]?.delta?.content ?? ''
         if (!delta) continue
-
         buffer += delta
-
-        // Parse <think>...</think> blocks
         while (true) {
           if (!inThinking) {
             const start = buffer.indexOf('<think>')
-            if (start === -1) {
-              fullText += buffer
-              buffer = ''
-              break
-            }
+            if (start === -1) { fullText += buffer; buffer = ''; break }
             fullText += buffer.slice(0, start)
             buffer = buffer.slice(start + 7)
             inThinking = true
           } else {
             const end = buffer.indexOf('</think>')
-            if (end === -1) {
-              thinkingText += buffer
-              buffer = ''
-              break
-            }
+            if (end === -1) { thinkingText += buffer; buffer = ''; break }
             thinkingText += buffer.slice(0, end)
             buffer = buffer.slice(end + 8)
             inThinking = false
           }
         }
-
         onChunk(fullText, thinkingText)
       } catch { /* skip */ }
     }
   }
-
   return { text: fullText.trim(), thinking: thinkingText.trim() }
 }
 
@@ -377,77 +396,76 @@ function saveLocalChats(chats: Chat[]) {
   } catch { /* quota exceeded or private mode */ }
 }
 
-// ── Supabase helpers ──────────────────────────────────────────────────────────
-async function loadSupabaseChats(userId: string): Promise<Chat[]> {
+// ── Firestore helpers ─────────────────────────────────────────────────────────
+function chatsRef(userId: string) {
+  return collection(db, 'users', userId, 'chats')
+}
+
+async function loadFirestoreChats(userId: string): Promise<Chat[]> {
   try {
-    const { data, error } = await supabase
-      .from('chats')
-      .select('*')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-
-    if (error) {
-      console.error('[useChat] loadSupabaseChats error:', error.message, error.code, error.details)
-      return []
-    }
-    if (!data) return []
-
-    return data.map((row: any) => ({
-      id: row.id,
-      title: row.title ?? 'New Chat',
-      createdAt: new Date(row.created_at),
-      messages: Array.isArray(row.messages)
-        ? row.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
-        : [],
-    }))
+    const q = query(chatsRef(userId), orderBy('updatedAt', 'desc'))
+    const snap = await getDocs(q)
+    return snap.docs.map((d) => {
+      const data = d.data()
+      return {
+        id: d.id,
+        title: data.title ?? 'New Chat',
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+        messages: Array.isArray(data.messages)
+          ? data.messages.map((m: any) => ({
+              ...m,
+              timestamp: m.timestamp?.toDate ? m.timestamp.toDate() : new Date(m.timestamp),
+            }))
+          : [],
+      }
+    })
   } catch (e) {
-    console.error('[useChat] loadSupabaseChats exception:', e)
+    console.error('[useChat] loadFirestoreChats error:', e)
     return []
   }
 }
 
-async function upsertSupabaseChat(userId: string, chat: Chat): Promise<void> {
+async function upsertFirestoreChat(userId: string, chat: Chat): Promise<void> {
   if (!userId || !chat.id) return
   try {
-    const { error } = await supabase.from('chats').upsert(
-      {
-        id: chat.id,
-        user_id: userId,
-        title: chat.title,
-        messages: chat.messages,
-        created_at: chat.createdAt.toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    )
-    if (error) console.error('[useChat] upsertSupabaseChat error:', error.message, error.code, error.details)
+    const ref = doc(db, 'users', userId, 'chats', chat.id)
+    await setDoc(ref, {
+      title: chat.title,
+      messages: chat.messages.map((m) => ({
+        ...m,
+        timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+      })),
+      createdAt: chat.createdAt instanceof Date ? chat.createdAt.toISOString() : chat.createdAt,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true })
   } catch (e) {
-    console.error('[useChat] upsertSupabaseChat exception:', e)
+    console.error('[useChat] upsertFirestoreChat error:', e)
   }
 }
 
-async function deleteSupabaseChat(chatId: string): Promise<void> {
+async function deleteFirestoreChat(userId: string, chatId: string): Promise<void> {
   try {
-    const { error } = await supabase.from('chats').delete().eq('id', chatId)
-    if (error) console.error('[useChat] deleteSupabaseChat error:', error.message)
+    await deleteDoc(doc(db, 'users', userId, 'chats', chatId))
   } catch (e) {
-    console.error('[useChat] deleteSupabaseChat exception:', e)
+    console.error('[useChat] deleteFirestoreChat error:', e)
   }
 }
 
-async function deleteAllSupabaseChats(userId: string): Promise<void> {
+async function deleteAllFirestoreChats(userId: string): Promise<void> {
   try {
-    const { error } = await supabase.from('chats').delete().eq('user_id', userId)
-    if (error) console.error('[useChat] deleteAllSupabaseChats error:', error.message)
+    const snap = await getDocs(chatsRef(userId))
+    const batch = writeBatch(db)
+    snap.docs.forEach((d) => batch.delete(d.ref))
+    await batch.commit()
   } catch (e) {
-    console.error('[useChat] deleteAllSupabaseChats exception:', e)
+    console.error('[useChat] deleteAllFirestoreChats error:', e)
   }
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useChat() {
   const { user, loading: authLoading, isGuest, guestMessageCount, guestLimitReached, incrementGuestCount } = useAuth()
-  const userId = user?.id ?? null
+  const userId = user?.uid ?? null
 
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
@@ -490,8 +508,8 @@ export function useChat() {
     async function load() {
       setLoaded(false)
       if (userId) {
-        // Logged-in: always load from Supabase
-        const cloudChats = await loadSupabaseChats(userId)
+        // Logged-in: always load from Firestore
+        const cloudChats = await loadFirestoreChats(userId)
         if (cancelled) return
         setChats(cloudChats)
         setActiveChatId(cloudChats.length > 0 ? cloudChats[0].id : null)
@@ -528,7 +546,7 @@ export function useChat() {
       return updated
     })
     setActiveChatId(id)
-    if (userId) upsertSupabaseChat(userId, newChat)
+    if (userId) upsertFirestoreChat(userId, newChat)
     return id
   }, [userId])
 
@@ -539,7 +557,7 @@ export function useChat() {
       return updated
     })
     setActiveChatId((prev) => (prev === id ? null : prev))
-    if (userId) deleteSupabaseChat(id)
+    if (userId) deleteFirestoreChat(userId, id)
   }, [userId])
 
   const renameChat = useCallback((id: string, title: string) => {
@@ -552,7 +570,7 @@ export function useChat() {
     if (userId) {
       setChats((prev) => {
         const chat = prev.find((c) => c.id === id)
-        if (chat) upsertSupabaseChat(userId, { ...chat, title })
+        if (chat) upsertFirestoreChat(userId, { ...chat, title })
         return prev
       })
     }
@@ -580,7 +598,7 @@ export function useChat() {
           return updated
         })
         setActiveChatId(chatId)
-        if (userId) upsertSupabaseChat(userId, newChat)
+        if (userId) upsertFirestoreChat(userId, newChat)
       } else {
         existingMessages = chats.find((c) => c.id === chatId)?.messages ?? []
       }
@@ -606,7 +624,7 @@ export function useChat() {
         return updated
       })
       // Persist user message immediately
-      if (userId && chatWithUserMsg) upsertSupabaseChat(userId, chatWithUserMsg)
+      if (userId && chatWithUserMsg) upsertFirestoreChat(userId, chatWithUserMsg)
 
       setIsTyping(true)
       setStreamingContent('')
@@ -636,7 +654,7 @@ export function useChat() {
             finalChat = updated.find((c) => c.id === chatId)
             return updated
           })
-          if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+          if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
           return
         }
 
@@ -661,7 +679,7 @@ export function useChat() {
             finalChat = updated.find((c) => c.id === chatId)
             return updated
           })
-          if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+          if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
           return
         }
 
@@ -760,7 +778,7 @@ INSTRUCTIONS:
           finalChat = updated.find((c) => c.id === chatId)
           return updated
         })
-        if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+        if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
 
       } catch (err) {
         if ((err as any)?.name === 'AbortError') {
@@ -782,7 +800,7 @@ INSTRUCTIONS:
               finalChat = updated.find((c) => c.id === chatId)
               return updated
             })
-            if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+            if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
           }
           return
         }
@@ -799,7 +817,7 @@ INSTRUCTIONS:
           finalChat = updated.find((c) => c.id === chatId)
           return updated
         })
-        if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+        if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
       } finally {
         abortControllerRef.current = null
         setIsTyping(false)
@@ -841,7 +859,7 @@ INSTRUCTIONS:
         finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
-      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+      if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
     } catch (err) {
       if ((err as any)?.name === 'AbortError') return
       const errorMsg: Message = {
@@ -857,7 +875,7 @@ INSTRUCTIONS:
         finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
-      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+      if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
     } finally {
       abortControllerRef.current = null
       setIsTyping(false)
@@ -897,7 +915,7 @@ INSTRUCTIONS:
         finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
-      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+      if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
     } catch (err) {
       if ((err as any)?.name === 'AbortError') return
       const errorMsg: Message = {
@@ -913,7 +931,7 @@ INSTRUCTIONS:
         finalChat = updated.find((c) => c.id === activeChatId)
         return updated
       })
-      if (userId && finalChat) upsertSupabaseChat(userId, finalChat)
+      if (userId && finalChat) upsertFirestoreChat(userId, finalChat)
     } finally {
       abortControllerRef.current = null
       setIsTyping(false)
@@ -929,7 +947,7 @@ INSTRUCTIONS:
     setChats([])
     setActiveChatId(null)
     if (userId) {
-      deleteAllSupabaseChats(userId)
+      deleteAllFirestoreChats(userId)
     } else {
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem(ACTIVE_KEY)

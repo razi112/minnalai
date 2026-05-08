@@ -1,6 +1,7 @@
 ﻿import { createContext, useContext, useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
-import type { User } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
+import type { User } from 'firebase/auth'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from '../firebase'
 
 export const GUEST_MESSAGE_LIMIT = 5
 const GUEST_COUNT_KEY = 'minnal_guest_msg_count'
@@ -38,14 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initializedRef = useRef(false)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser)
       if (!initializedRef.current) {
         initializedRef.current = true
         setLoading(false)
       }
     })
 
+    // Fallback timeout in case Firebase takes too long
     const timeout = setTimeout(() => {
       if (!initializedRef.current) {
         initializedRef.current = true
@@ -54,10 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 1500)
 
     return () => {
-      subscription.unsubscribe()
+      unsubscribe()
       clearTimeout(timeout)
     }
   }, [])
+
   const incrementGuestCount = useCallback(() => {
     setGuestMessageCount((prev) => {
       const next = prev + 1

@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { supabase } from '../supabase'
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+} from 'firebase/auth'
+import { auth, googleProvider } from '../firebase'
 import { GUEST_MESSAGE_LIMIT, useAuth } from '../context/AuthContext'
 
 function GoogleIcon() {
@@ -39,16 +45,20 @@ function Spinner() {
 type Mode = 'signin' | 'signup'
 
 function parseError(err: unknown): string {
+  if (err && typeof err === 'object' && 'code' in err) {
+    const code = (err as { code: string }).code
+    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found')
+      return 'Incorrect email or password.'
+    if (code === 'auth/email-already-in-use') return 'An account with this email already exists.'
+    if (code === 'auth/weak-password') return 'Password must be at least 6 characters.'
+    if (code === 'auth/invalid-email') return 'Invalid email address.'
+    if (code === 'auth/network-request-failed') return 'Network error. Check your connection.'
+    if (code === 'auth/popup-closed-by-user') return 'Sign-in popup was closed. Please try again.'
+    if (code === 'auth/cancelled-popup-request') return ''
+    if (code === 'auth/too-many-requests') return 'Too many attempts. Please wait a moment and try again.'
+  }
   if (err && typeof err === 'object' && 'message' in err) {
-    const msg = (err as { message: string }).message
-    if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.'
-    if (msg.includes('Email not confirmed')) return 'Please confirm your email before signing in.'
-    if (msg.includes('User already registered')) return 'An account with this email already exists.'
-    if (msg.includes('Password should be')) return 'Password must be at least 6 characters.'
-    if (msg.includes('Unable to validate')) return 'Invalid email address.'
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) return 'Network error. Check your connection.'
-    if (msg.includes('Invalid API key') || msg.includes('No API key')) return '⚠️ Supabase not configured. Add your credentials to supabase.ts'
-    return msg
+    return (err as { message: string }).message
   }
   return 'Something went wrong. Please try again.'
 }
@@ -86,18 +96,11 @@ export default function Login() {
     setLoading(true)
     try {
       if (mode === 'signup') {
-        const { error: err } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: name.trim() } },
-        })
-        if (err) throw err
-        setSuccessMsg('Account created! Check your email to confirm, then sign in.')
-        setMode('signin')
-        setPassword('')
+        const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password)
+        await updateProfile(newUser, { displayName: name.trim() })
+        navigate('/dashboard', { replace: true })
       } else {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-        if (err) throw err
+        await signInWithEmailAndPassword(auth, email, password)
         navigate('/dashboard', { replace: true })
       }
     } catch (err) {
@@ -111,14 +114,12 @@ export default function Login() {
     setGoogleLoading(true)
     clearMessages()
     try {
-      const { error: err } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      })
-      if (err) throw err
-      // OAuth redirects the page — no navigate() needed
+      await signInWithPopup(auth, googleProvider)
+      navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(parseError(err))
+      const msg = parseError(err)
+      if (msg) setError(msg)
+    } finally {
       setGoogleLoading(false)
     }
   }
@@ -317,7 +318,7 @@ export default function Login() {
             onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.02)' }}
           >
             {googleLoading ? <Spinner /> : <GoogleIcon />}
-            <span>{googleLoading ? 'Redirecting…' : 'Continue with Google'}</span>
+            <span>{googleLoading ? 'Signing in…' : 'Continue with Google'}</span>
           </button>
 
           {/* Terms */}
